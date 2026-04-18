@@ -51,12 +51,7 @@ async function startServer() {
 
   const pool = new Pool({
     connectionString,
-    ssl: connectionString?.includes('localhost') || 
-         connectionString?.includes('127.0.0.1') || 
-         connectionString?.includes('45.88.188.129') ||
-         connectionString?.includes('sslmode=disable') ? false : {
-      rejectUnauthorized: false
-    }
+    ssl: connectionString?.includes('sslmode=require') ? { rejectUnauthorized: false } : false
   });
 
   // Initialize database (non-blocking)
