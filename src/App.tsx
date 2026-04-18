@@ -2294,110 +2294,194 @@ const CartTab = ({ cart, removeFromCart, updateCartQuantity, onCheckout, isLoade
 }) => {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const subtotal = cart.reduce((sum, item) => sum + (Number(item.price) || 0) * (item.quantity || 1), 0);
+  const totalItems = cart.reduce((s, i) => s + (i.quantity || 1), 0);
+
+  // Beverage color palette by name keywords
+  const getBevColor = (name: string) => {
+    const n = name.toLowerCase();
+    if (n.includes('lager') || n.includes('beer')) return { bg: 'from-amber-400 to-orange-500', icon: '🍺' };
+    if (n.includes('wine') || n.includes('red')) return { bg: 'from-rose-500 to-red-700', icon: '🍷' };
+    if (n.includes('whisky') || n.includes('whiskey')) return { bg: 'from-amber-600 to-yellow-800', icon: '🥃' };
+    if (n.includes('gin')) return { bg: 'from-sky-400 to-blue-600', icon: '🍸' };
+    if (n.includes('juice') || n.includes('mango') || n.includes('orange')) return { bg: 'from-orange-300 to-amber-400', icon: '🥤' };
+    if (n.includes('water')) return { bg: 'from-blue-300 to-cyan-500', icon: '💧' };
+    if (n.includes('soda') || n.includes('cola')) return { bg: 'from-gray-700 to-gray-900', icon: '🥤' };
+    if (n.includes('vodka')) return { bg: 'from-slate-300 to-slate-500', icon: '🍸' };
+    return { bg: 'from-primary/80 to-orange-600', icon: '🍶' };
+  };
 
   return (
-    <div className="space-y-6 bg-white p-4 min-h-screen">
-      <div className="flex items-center gap-3">
-        <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Your Orders</h2>
-        <div className="flex-1 h-px bg-gray-100" />
-        {cart.length > 0 && (
-          <span className="bg-primary/10 text-primary text-[10px] font-black px-2 py-1 rounded-lg uppercase">
-            {cart.reduce((s, i) => s + (i.quantity || 1), 0)} Items
-          </span>
-        )}
+    <div className="min-h-screen" style={{ background: '#F5F5F7' }}>
+      {/* Header */}
+      <div className="sticky top-0 z-30" style={{ background: '#F5F5F7' }}>
+        <div className="px-5 pt-6 pb-4">
+          <div className="flex items-center justify-between mb-1">
+            <div>
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-[3px]">Your Selection</p>
+              <h2 className="text-2xl font-black text-gray-900" style={{ letterSpacing: '-0.5px' }}>My Cart</h2>
+            </div>
+            {cart.length > 0 && (
+              <div className="flex flex-col items-end">
+                <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">{totalItems} {totalItems === 1 ? 'item' : 'items'}</span>
+                <span className="text-lg font-black text-gray-900">{subtotal.toLocaleString()} <span className="text-primary text-sm">TZS</span></span>
+              </div>
+            )}
+          </div>
+          {selectedCustomer && (
+            <div className="mt-3 flex items-center gap-2.5 bg-orange-50 border border-orange-100 px-4 py-2.5 rounded-2xl">
+              <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                <User size={13} className="text-white" />
+              </div>
+              <div>
+                <p className="text-[9px] font-black text-orange-400 uppercase tracking-widest">Ordering For</p>
+                <p className="text-xs font-black text-gray-900 leading-tight">{selectedCustomer.name}</p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      {selectedCustomer && (
-        <div className="bg-gray-50 p-4 rounded-3xl border border-gray-100 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-primary/10 p-2 rounded-xl text-primary">
-              <User size={18} />
-            </div>
-            <div>
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Order For</p>
-              <p className="text-sm font-bold text-gray-900">{selectedCustomer.name}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="space-y-4">
+      {/* Cart Items */}
+      <div className="px-4 pb-48">
         {cart.length === 0 ? (
-          <div className="p-12 text-center space-y-4">
-            <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100">
-              <ShoppingCart className="text-gray-300" size={32} />
+          <div className="flex flex-col items-center justify-center pt-24 space-y-5">
+            <div className="w-28 h-28 rounded-[32px] bg-white shadow-lg flex items-center justify-center" style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.07)' }}>
+              <ShoppingCart className="text-gray-200" size={48} />
             </div>
-            <p className="text-gray-400 font-bold uppercase text-xs tracking-widest">Empty Selection</p>
-            <Link to="/products" className="inline-block bg-primary text-white px-8 py-3 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
+            <div className="text-center">
+              <p className="text-lg font-black text-gray-900 mb-1">Cart is empty</p>
+              <p className="text-sm text-gray-400 font-medium">Add some drinks to get started</p>
+            </div>
+            <Link to="/products"
+              className="mt-2 bg-primary text-white px-10 py-3.5 rounded-2xl font-black uppercase text-xs tracking-[3px] shadow-xl shadow-primary/30 hover:scale-105 active:scale-95 transition-transform"
+            >
               Browse Drinks
             </Link>
           </div>
         ) : (
-          <>
-            <div className="space-y-2">
-              {cart.map((item) => (
-                <div key={item.id} className="bg-white p-4 rounded-[32px] flex justify-between items-center border border-gray-100 shadow-sm group">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center border border-gray-100">
-                      <ShoppingCart className="text-gray-300" size={20} />
+          <div className="space-y-3 py-1">
+            {cart.map((item, idx) => {
+              const bev = getBevColor(item.name);
+              const unitPrice = Number(item.price) || 0;
+              const lineTotal = unitPrice * (item.quantity || 1);
+              return (
+                <div key={item.id}
+                  className="bg-white rounded-[28px] overflow-hidden"
+                  style={{ boxShadow: '0 2px 20px rgba(0,0,0,0.06)', transform: 'translateZ(0)' }}
+                >
+                  <div className="flex items-center gap-0">
+                    {/* Colored left accent / image panel */}
+                    <div className={`w-[88px] h-[88px] flex-shrink-0 bg-gradient-to-br ${bev.bg} flex items-center justify-center rounded-[28px] m-3 mr-0`}>
+                      <span className="text-[34px] leading-none drop-shadow-lg">{bev.icon}</span>
                     </div>
-                    <div>
-                      <p className="text-sm font-bold text-gray-900 uppercase truncate max-w-[150px]">
+
+                    {/* Info section */}
+                    <div className="flex-1 px-4 py-3 min-w-0">
+                      <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest truncate">
+                        {item.isWholesale ? 'Wholesale' : 'Retail'}
+                      </p>
+                      <p className="text-[15px] font-black text-gray-900 leading-tight truncate" style={{ letterSpacing: '-0.3px' }}>
                         {item.name}
                       </p>
-                      <p className="text-primary font-black text-xs">
-                        {((Number(item.price) || 0) * (item.quantity || 1)).toLocaleString()} TZS
-                        {item.isWholesale && <span className="ml-2 text-[10px] bg-primary/10 px-1.5 py-0.5 rounded uppercase tracking-tighter">Wholesale</span>}
-                      </p>
+                      <div className="flex items-baseline gap-1.5 mt-0.5">
+                        <span className="text-primary font-black text-base">{lineTotal.toLocaleString()}</span>
+                        <span className="text-gray-400 text-[11px] font-bold">TZS</span>
+                        {item.quantity > 1 && (
+                          <span className="text-[10px] text-gray-300 font-bold">({unitPrice.toLocaleString()} × {item.quantity})</span>
+                        )}
+                      </div>
                     </div>
+
+                    {/* Delete */}
+                    <button
+                      onClick={() => removeFromCart(item.id)}
+                      className="mr-3 w-8 h-8 rounded-xl bg-red-50 text-red-400 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all active:scale-90 flex-shrink-0"
+                    >
+                      <Trash2 size={15} />
+                    </button>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex bg-gray-100 rounded-full p-1 border border-gray-200 shadow-inner">
-                      <button 
-                        onClick={() => updateCartQuantity(item.id, -1)} 
-                        disabled={(item.quantity || 1) <= 1} 
-                        className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-500 hover:text-gray-900 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+
+                  {/* Qty stepper row */}
+                  <div className="flex items-center border-t border-gray-50 px-4 py-2.5">
+                    <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest flex-1">Quantity</p>
+                    <div className="flex items-center gap-0 bg-gray-50 rounded-2xl border border-gray-100" style={{ overflow: 'hidden' }}>
+                      <button
+                        onClick={() => updateCartQuantity(item.id, -1)}
+                        disabled={(item.quantity || 1) <= 1}
+                        className="w-11 h-9 flex items-center justify-center text-gray-400 hover:text-gray-900 active:bg-gray-100 transition-all font-black text-lg disabled:opacity-30 disabled:cursor-not-allowed"
                       >
-                        -
+                        −
                       </button>
-                      <div className="w-8 flex items-center justify-center font-black text-sm text-gray-900 bg-transparent">{item.quantity || 1}</div>
-                      <button 
-                        onClick={() => updateCartQuantity(item.id, 1)} 
-                        className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-500 hover:text-gray-900 transition-all active:scale-95"
+                      <div className="w-10 h-9 flex items-center justify-center font-black text-sm text-gray-900 bg-white border-l border-r border-gray-100">
+                        {item.quantity || 1}
+                      </div>
+                      <button
+                        onClick={() => updateCartQuantity(item.id, 1)}
+                        className="w-11 h-9 flex items-center justify-center text-gray-400 hover:text-primary active:bg-orange-50 transition-all font-black text-lg"
                       >
                         +
                       </button>
                     </div>
-                    <button 
-                      onClick={() => removeFromCart(item.id)} 
-                      className="w-10 h-10 rounded-full bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm active:scale-95"
-                    >
-                      <Trash2 size={18} />
-                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
-            
-            <div className="bg-gray-900 p-8 rounded-[40px] space-y-6 mt-8 shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 blur-[60px] rounded-full" />
-              <div className="absolute bottom-0 left-0 w-32 h-32 bg-primary/10 blur-[60px] rounded-full" />
-              
-              <div className="flex justify-between items-center relative z-10 border-b border-white/10 pb-4">
-                <span className="text-gray-400 text-xs font-black uppercase tracking-[3px]">Total Payable</span>
-                <span className="text-2xl font-black text-white">{subtotal.toLocaleString()} TZS</span>
-              </div>
-              
-              <button 
-                onClick={() => setIsCheckoutOpen(true)}
-                className="w-full bg-primary text-white py-5 rounded-2xl font-black uppercase text-xs tracking-[4px] shadow-2xl shadow-primary/40 hover:bg-primary-dark transition-all active:scale-[0.98] relative z-10"
-              >
-                Checkout Now
-              </button>
-            </div>
-          </>
+              );
+            })}
+          </div>
         )}
       </div>
+
+      {/* Sticky Checkout Panel */}
+      {cart.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-40" style={{ maxWidth: '480px', margin: '0 auto' }}>
+          <div className="mx-3 mb-20">
+            <div
+              className="rounded-[32px] p-5 relative overflow-hidden"
+              style={{
+                background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%)',
+                boxShadow: '0 -4px 40px rgba(0,0,0,0.18), 0 20px 60px rgba(0,0,0,0.25)'
+              }}
+            >
+              {/* Glow orbs */}
+              <div className="absolute top-0 right-6 w-28 h-28 bg-primary/20 blur-[50px] rounded-full pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-20 h-20 bg-orange-500/10 blur-[40px] rounded-full pointer-events-none" />
+
+              {/* Summary rows */}
+              <div className="relative z-10 space-y-2 mb-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-[2px]">{totalItems} {totalItems === 1 ? 'Item' : 'Items'}</span>
+                  <span className="text-[11px] font-bold text-gray-400">{subtotal.toLocaleString()} TZS</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-[2px]">Delivery</span>
+                  <span className="text-[11px] font-bold text-green-400 uppercase">Calculated at checkout</span>
+                </div>
+                <div className="h-px bg-white/10 my-2" />
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-black text-gray-300 uppercase tracking-[2px]">Total Payable</span>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-2xl font-black text-white" style={{ letterSpacing: '-1px' }}>
+                      {subtotal.toLocaleString()}
+                    </span>
+                    <span className="text-primary font-black text-sm">TZS</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* CTA */}
+              <button
+                onClick={() => setIsCheckoutOpen(true)}
+                className="w-full py-4 rounded-2xl font-black uppercase text-sm tracking-[3px] transition-all active:scale-[0.98] relative z-10 flex items-center justify-center gap-2"
+                style={{
+                  background: 'linear-gradient(135deg, #FF6B1A 0%, #FF8C42 100%)',
+                  boxShadow: '0 8px 24px rgba(255,107,26,0.45)'
+                }}
+              ><ShoppingCart size={16} className="text-white opacity-80" />
+                Proceed to Checkout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <AnimatePresence>
         {isCheckoutOpen && (
