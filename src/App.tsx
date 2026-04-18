@@ -32,7 +32,7 @@ type Expense = {
   paymentMode?: string;
 };
 
-type CartItem = { id: number; productId: string; name: string; price: number; isWholesale: boolean };
+type CartItem = { id: number; productId: string; name: string; price: number; isWholesale: boolean; quantity: number };
 type Customer = {
   id: string;
   companyId: string;
@@ -1403,7 +1403,7 @@ const ProductsTab = ({
   products: Product[]; 
   isWholesale: boolean; 
   setIsWholesale: (v: boolean) => void; 
-  addToCart: (item: Omit<CartItem, 'id'>) => void;
+  addToCart: (item: Omit<CartItem, 'id' | 'quantity'>) => void;
   userRole?: string;
   isLoaded?: boolean;
   searchQuery?: string;
@@ -1820,7 +1820,7 @@ const CheckoutFlow = ({ isOpen, onClose, cart, isLoaded, onComplete, userName, s
   const [discountValue, setDiscountValue] = useState(0);
   const [discountType, setDiscountType] = useState<'percentage' | 'flat'>('percentage');
 
-  const productTotal = cart.reduce((sum, item) => sum + item.price, 0);
+  const productTotal = cart.reduce((sum, item) => sum + (Number(item.price) || 0) * (item.quantity || 1), 0);
   const discountAmount = discountType === 'percentage' ? (productTotal * (discountValue / 100)) : discountValue;
   const transportFee = selectedTruck ? parsePrice(selectedTruck.price) : 0;
   const grandTotal = Math.max(0, productTotal - discountAmount + transportFee);
@@ -2283,16 +2283,17 @@ const CheckoutFlow = ({ isOpen, onClose, cart, isLoaded, onComplete, userName, s
   );
 };
 
-const CartTab = ({ cart, removeFromCart, onCheckout, isLoaded, userName, selectedCustomer }: { 
+const CartTab = ({ cart, removeFromCart, updateCartQuantity, onCheckout, isLoaded, userName, selectedCustomer }: { 
   cart: CartItem[]; 
   removeFromCart: (id: number) => void; 
+  updateCartQuantity: (id: number, delta: number) => void;
   onCheckout: (details: any) => void;
   isLoaded: boolean;
   userName: string;
   selectedCustomer?: Customer | null;
 }) => {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const subtotal = cart.reduce((sum, item) => sum + item.price, 0);
+  const subtotal = cart.reduce((sum, item) => sum + (Number(item.price) || 0) * (item.quantity || 1), 0);
 
   return (
     <div className="space-y-6 bg-white p-4 min-h-screen">
@@ -2301,7 +2302,7 @@ const CartTab = ({ cart, removeFromCart, onCheckout, isLoaded, userName, selecte
         <div className="flex-1 h-px bg-gray-100" />
         {cart.length > 0 && (
           <span className="bg-primary/10 text-primary text-[10px] font-black px-2 py-1 rounded-lg uppercase">
-            {cart.length} Items
+            {cart.reduce((s, i) => s + (i.quantity || 1), 0)} Items
           </span>
         )}
       </div>
@@ -2345,17 +2346,35 @@ const CartTab = ({ cart, removeFromCart, onCheckout, isLoaded, userName, selecte
                         {item.name}
                       </p>
                       <p className="text-primary font-black text-xs">
-                        {item.price.toLocaleString()} TZS
+                        {((Number(item.price) || 0) * (item.quantity || 1)).toLocaleString()} TZS
                         {item.isWholesale && <span className="ml-2 text-[10px] bg-primary/10 px-1.5 py-0.5 rounded uppercase tracking-tighter">Wholesale</span>}
                       </p>
                     </div>
                   </div>
-                  <button 
-                    onClick={() => removeFromCart(item.id)} 
-                    className="w-10 h-10 rounded-full bg-red-50 text-red-400 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <div className="flex bg-gray-100 rounded-full p-1 border border-gray-200 shadow-inner">
+                      <button 
+                        onClick={() => updateCartQuantity(item.id, -1)} 
+                        disabled={(item.quantity || 1) <= 1} 
+                        className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-500 hover:text-gray-900 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        -
+                      </button>
+                      <div className="w-8 flex items-center justify-center font-black text-sm text-gray-900 bg-transparent">{item.quantity || 1}</div>
+                      <button 
+                        onClick={() => updateCartQuantity(item.id, 1)} 
+                        className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-500 hover:text-gray-900 transition-all active:scale-95"
+                      >
+                        +
+                      </button>
+                    </div>
+                    <button 
+                      onClick={() => removeFromCart(item.id)} 
+                      className="w-10 h-10 rounded-full bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm active:scale-95"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -6050,8 +6069,23 @@ export default function App() {
     }
   };
 
-  const addToCart = (item: Omit<CartItem, 'id'>) => {
-    setCart(prev => [...prev, { ...item, id: Date.now() }]);
+  const addToCart = (item: Omit<CartItem, 'id' | 'quantity'>) => {
+    setCart(prev => {
+      const existing = prev.find(i => i.productId === item.productId && i.isWholesale === item.isWholesale);
+      if (existing) {
+        return prev.map(i => i.id === existing.id ? { ...i, quantity: i.quantity + 1 } : i);
+      }
+      return [...prev, { ...item, id: Date.now(), quantity: 1 }];
+    });
+  };
+
+  const updateCartQuantity = (id: number, delta: number) => {
+    setCart(prev => prev.map(item => {
+      if (item.id === id) {
+        return { ...item, quantity: Math.max(1, item.quantity + delta) };
+      }
+      return item;
+    }));
   };
 
   const handleDirectOrder = async (item: Omit<CartItem, 'id'>, customer: Customer) => {
@@ -6505,7 +6539,7 @@ export default function App() {
                 <Route path="/" element={<HomeTab user={user} setUser={setUser} products={products} sales={sales} expenses={expenses} orders={orders} setShowSettingsModal={setShowSettingsModal} addToCart={addToCart} />} />
                 <Route path="/products" element={<ProductsTab products={products} isWholesale={isWholesale} setIsWholesale={setIsWholesale} addToCart={addToCart} userRole={user?.role || 'client'} isLoaded={isLoaded} searchQuery={searchQuery} setSearchQuery={setSearchQuery} cartCount={cart.length} />} />
                 <Route path="/chat" element={<ChatTab />} />
-                <Route path="/cart" element={<CartTab cart={cart} removeFromCart={removeFromCart} onCheckout={handleCheckout} isLoaded={isLoaded} userName={user?.role === 'manager' && selectedCustomer ? selectedCustomer.name : (user?.name || 'Guest')} selectedCustomer={user?.role === 'manager' ? selectedCustomer : null} />} />
+                <Route path="/cart" element={<CartTab cart={cart} removeFromCart={removeFromCart} updateCartQuantity={updateCartQuantity} onCheckout={handleCheckout} isLoaded={isLoaded} userName={user?.role === 'manager' && selectedCustomer ? selectedCustomer.name : (user?.name || 'Guest')} selectedCustomer={user?.role === 'manager' ? selectedCustomer : null} />} />
                 {user?.role === 'manager' && (
                   <>
                     <Route path="/manager" element={<ManagerDashboard user={user} setUser={setUser} products={products} setProducts={setProducts} sales={sales} expenses={expenses} setExpenses={setExpenses} orders={orders} vendors={vendors} setVendors={setVendors} purchaseOrders={purchaseOrders} setPurchaseOrders={setPurchaseOrders} showSettingsModal={showSettingsModal} setShowSettingsModal={setShowSettingsModal} />} />
