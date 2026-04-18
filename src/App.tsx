@@ -916,37 +916,45 @@ const CLIENT_CATEGORIES = [
 const Carousel = () => {
   const [current, setCurrent] = useState(0);
   const slides = [
-    'https://picsum.photos/seed/soju1/800/400',
-    'https://picsum.photos/seed/soju2/800/400',
-    'https://picsum.photos/seed/soju3/800/400',
+    { src: '/ads/ad_jinro.png', alt: 'Jinro Soju - Limited Offer 13,000 TZS' },
+    { src: '/ads/ad_hennessy.png', alt: 'Hennessy - Never Stop. Never Settle.' },
+    { src: '/ads/ad_heineken.png', alt: 'Heineken - Cold, Crispy Delivered in 30 Minutes' },
+    { src: '/ads/ad_kwv.png', alt: 'KWV Classic Collection - Starting from 34,000 TZS' },
   ];
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrent(prev => (prev + 1) % slides.length);
-    }, 5000);
+    }, 4000);
     return () => clearInterval(timer);
   }, []);
 
   return (
     <div className="relative w-full">
-      <div className="relative w-full aspect-[21/9] bg-gray-100 overflow-hidden shadow-sm">
+      <div className="relative w-full aspect-[21/9] bg-gray-900 overflow-hidden">
         <AnimatePresence mode="wait">
           <motion.img 
             key={current}
-            src={slides[current]} 
-            initial={{ opacity: 0, x: 20 }}
+            src={slides[current].src}
+            alt={slides[current].alt}
+            initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="w-full h-full object-cover"
+            exit={{ opacity: 0, x: -30 }}
+            transition={{ duration: 0.4, ease: 'easeInOut' }}
+            className="w-full h-full object-cover object-center"
             referrerPolicy="no-referrer"
           />
         </AnimatePresence>
-      </div>
-      <div className="flex justify-center gap-1.5 mt-4">
-        {slides.map((_, i) => (
-          <div key={i} className={`w-1.5 h-1.5 rounded-full transition-colors ${i === current ? 'bg-orange-500' : 'bg-orange-200'}`} />
-        ))}
+        {/* Slide indicator dots overlaid bottom-right */}
+        <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5">
+          {slides.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrent(i)}
+              className={`transition-all rounded-full ${i === current ? 'w-5 h-1.5 bg-orange-500' : 'w-1.5 h-1.5 bg-white/50'}`}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
