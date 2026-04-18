@@ -362,6 +362,10 @@ async function startServer() {
   });
 
   // Vite middleware for development
+  // Always serve public directory for static assets (ads, images, etc.)
+  const publicPath = path.join(process.cwd(), 'public');
+  app.use(express.static(publicPath));
+
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
