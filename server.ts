@@ -35,8 +35,15 @@ async function startServer() {
   // Database setup
   let connectionString = process.env.DATABASE_URL || process.env.PRIVATE_DATABASE_URL;
   
-  if (!connectionString) {
-    console.warn("DATABASE_URL is not set. Please provide it via environment variables.");
+  if (!connectionString || connectionString.includes('YOUR_PASSWORD') || connectionString.includes('pqgtvo71dogrfgu2vipok5ye')) {
+    console.warn("Using fallback hardcoded DATABASE_URL because environment variable is missing or invalid.");
+    connectionString = "postgres://admin:Paris09051996@45.88.188.129:5860/beverage";
+  } else if (connectionString.includes('45.88.188.129') && !connectionString.includes('Paris09051996')) {
+     try {
+       const url = new URL(connectionString);
+       url.password = "Paris09051996";
+       connectionString = url.toString();
+     } catch(e) {}
   }
 
   if (connectionString) {
