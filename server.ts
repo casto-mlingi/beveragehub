@@ -16,7 +16,7 @@ const { Pool } = pg;
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = process.env.PORT || 3070;
 
   // Listen immediately so we can respond to health checks while DB is initializing
   const server = app.listen(PORT, "0.0.0.0", () => {
@@ -35,11 +35,8 @@ async function startServer() {
   // Database setup
   let connectionString = process.env.DATABASE_URL || process.env.PRIVATE_DATABASE_URL;
   
-  // Double check specifically for this host as it's known to work with this password
-  if (connectionString?.includes('45.88.188.129') && !connectionString.includes('Paris09051996')) {
-     const url = new URL(connectionString);
-     url.password = "Paris09051996";
-     connectionString = url.toString();
+  if (!connectionString) {
+    console.warn("DATABASE_URL is not set. Please provide it via environment variables.");
   }
 
   if (connectionString) {
