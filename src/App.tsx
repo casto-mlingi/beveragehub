@@ -5899,7 +5899,7 @@ export default function App() {
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [settingsForm, setSettingsForm] = useState<Partial<UserProfile>>({});
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
-  const [isGuest, setIsGuest] = useState(false);
+  const [isGuest, setIsGuest] = useState(true);
 
   useEffect(() => {
     if (showSettingsModal && user) {
