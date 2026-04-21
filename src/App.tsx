@@ -14,7 +14,7 @@ const LIBRARIES: ("places")[] = ["places"];
 // ... existing imports ...
 import { HashRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Home, ShoppingCart, User, Package, Search, Plus, Truck, Store, Trash2, ArrowLeft, MapPin, Clock, Info, ChevronLeft, ChevronRight, ChevronDown, X, Phone, MessageSquare, Navigation, MessageCircle, Send, Bot, User as UserIcon, Camera, Image as ImageIcon, Paperclip, Edit2, Barcode, Scan, Flashlight, FlashlightOff, Calculator, TrendingUp, DollarSign, AlertTriangle, BarChart3, Settings, Users, Upload, PackagePlus, FileText, Calendar, Shield, ExternalLink, Check, ShoppingBag, GlassWater, Share2, Ticket, Beer, Gift } from 'lucide-react';
+import { Hop as Home, ShoppingCart, User, Package, Search, Plus, Truck, Store, Trash2, ArrowLeft, MapPin, Clock, Info, ChevronLeft, ChevronRight, ChevronDown, X, Phone, MessageSquare, Navigation, MessageCircle, Send, Bot, User as UserIcon, Camera, Image as ImageIcon, Paperclip, CreditCard as Edit2, Barcode, Scan, Flashlight, FlashlightOff, Calculator, TrendingUp, DollarSign, TriangleAlert as AlertTriangle, ChartBar as BarChart3, Settings, Users, Upload, PackagePlus, FileText, Calendar, Shield, ExternalLink, Check, ShoppingBag, GlassWater, Share2, Ticket, Beer, Gift } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { GoogleMap, useJsApiLoader, Marker, DirectionsService, DirectionsRenderer, Autocomplete, Libraries } from '@react-google-maps/api';
@@ -5609,7 +5609,7 @@ const AuthScreen = ({ externalError, setUser, onGuest }: { externalError?: strin
         setUser(result);
       } else {
         const payload = isManagerMode ? { phone, password } : { email: phone, password };
-        const result = await apiService.post('login', payload);
+        const result = await apiService.login(payload);
         
         if (isManagerMode && result.role !== 'manager') {
 
