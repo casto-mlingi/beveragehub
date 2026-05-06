@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Leaflet Map Test</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <style>
+        #map { height: 400px; width: 100%; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <script>
+        // Initialize the map centered on Dar es Salaam
+        var map = L.map('map').setView([-6.7924, 39.2083], 13);
+        
+        // Add the local tile layer
+        L.tileLayer('http://45.88.188.129:9095/styles/basic/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="http://45.88.188.129:9095">Local Tile Server</a>',
+            maxZoom: 18
+        }).addTo(map);
+        
+        // Add a marker for the hub location
+        var hubLocation = L.latLng(-6.7724, 39.2283);
+        L.marker(hubLocation).addTo(map)
+            .bindPopup('B-Hub Hub')
+            .openPopup();
+        
+        // Add a destination marker
+        var destination = L.latLng(-6.7824, 39.2183);
+        L.marker(destination).addTo(map)
+            .bindPopup('Delivery Destination');
+            
+        console.log('Map initialized successfully with local tile server');
+    </script>
+</body>
+</html>

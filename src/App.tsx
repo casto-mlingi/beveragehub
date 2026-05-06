@@ -8,16 +8,18 @@ import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signO
 import { apiService } from './services/apiService';
 import { auth } from './firebase';
 
-const LIBRARIES: ("places")[] = ["places"];
 
 // import { CATEGORIES } from './categories';
 // ... existing imports ...
 import { HashRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Home, ShoppingCart, User, Package, Search, Plus, Truck, Store, Trash2, ArrowLeft, MapPin, Clock, Info, ChevronLeft, ChevronRight, ChevronDown, X, Phone, MessageSquare, Navigation, MessageCircle, Send, Bot, User as UserIcon, Camera, Image as ImageIcon, Paperclip, Edit2, Barcode, Scan, Flashlight, FlashlightOff, Calculator, TrendingUp, DollarSign, AlertTriangle, BarChart3, Settings, Users, Upload, PackagePlus, FileText, Calendar, Shield, ExternalLink, Check, ShoppingBag, GlassWater, Share2, Ticket, Beer, Gift } from 'lucide-react';
+import { Home, ShoppingCart, User, Package, Search, Plus, Truck, Store, Trash2, ArrowLeft, MapPin, Clock, Info, ChevronLeft, ChevronRight, ChevronDown, X, Phone, MessageSquare, Navigation, MessageCircle, Send, Bot, User as UserIcon, Camera, Image as ImageIcon, Paperclip, Edit2, Barcode, Scan, Flashlight, FlashlightOff, Calculator, TrendingUp, DollarSign, AlertTriangle, BarChart3, Settings, Users, Upload, PackagePlus, FileText, Calendar, Shield, ExternalLink, Check, ShoppingBag, GlassWater, Share2, Ticket, Beer, Gift, Star, Zap, Coffee, Wine } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { GoogleMap, useJsApiLoader, Marker, DirectionsService, DirectionsRenderer, Autocomplete, Libraries } from '@react-google-maps/api';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { Autocomplete, GoogleMap, useJsApiLoader } from '@react-google-maps/api';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
 import { GoogleGenAI } from "@google/genai";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -55,6 +57,8 @@ type Product = {
   id: string;
   companyId: string;
   name: string; 
+  description?: string;
+  alcoholLevel?: string;
   retailPrice: number; 
   wholesalePrice: number; 
   costPrice: number;
@@ -164,6 +168,7 @@ type Order = {
   id: string;
   companyId: string;
   customerName: string;
+  customerPhone?: string;
   items: CartItem[];
   subtotal: number;
   transportCost: number;
@@ -913,14 +918,284 @@ const CLIENT_CATEGORIES = [
   },
 ];
 
-const Carousel = () => {
+const CategorySlider = ({
+  activeCategory,
+  onSelectCategory,
+  categories = [],
+  className = '',
+}: {
+  activeCategory: string;
+  onSelectCategory: (categoryId: string) => void;
+  categories: any[];
+  className?: string;
+}) => {
+  const displayCategories = categories.length > 0 ? categories : CLIENT_CATEGORIES;
+  
+  return (
+    <div className={`bg-white px-4 py-4 border-b border-gray-200 ${className}`.trim()}>
+      <div className="flex gap-3 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        {displayCategories.map((c) => {
+          const isActive = activeCategory === c.id;
+          return (
+            <button
+              key={c.id}
+              onClick={() => onSelectCategory(c.id)}
+              className={`relative flex-shrink-0 w-[128px] h-[88px] rounded-[18px] overflow-hidden border transition-all ${isActive ? 'border-[#ff6b00] shadow-md shadow-orange-500/30' : 'border-gray-200 shadow-sm'}`}
+            >
+              <img src={c.image} alt={c.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              <div className="absolute inset-0 bg-black/35" />
+              <div className="absolute inset-x-0 bottom-2 flex justify-center">
+                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wide ${isActive ? 'bg-[#ff6b00] text-white' : 'bg-white/85 text-gray-900'}`}>
+                  {c.name}
+                </span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const formatCurrency = (value: number) => `TZS ${Number(value || 0).toLocaleString()}`;
+
+const getProductVolumeLabel = (product: Product) => {
+  const explicitMatch = product.name.match(/\d+\s?(ml|l)\b/i);
+  if (explicitMatch) {
+    return explicitMatch[0].replace(/\s+/g, '').toUpperCase();
+  }
+
+  const primaryCategory = product.category.split(' > ')[0];
+  if (primaryCategory === 'Beer' || primaryCategory === 'Soft Drinks') return '500ML';
+  if (primaryCategory === 'Spirits') return '250ML';
+  if (primaryCategory === 'Red Wines' || primaryCategory === 'White Wines' || primaryCategory === 'Bubbles') return '750ML';
+  return 'Standard Pack';
+};
+
+const getAlcoholLevelLabel = (product: Product) => {
+  if (product.alcoholLevel?.trim()) return product.alcoholLevel.trim();
+
+  const primaryCategory = product.category.split(' > ')[0];
+  const name = product.name.toLowerCase();
+
+  if (primaryCategory === 'Soft Drinks') return '0.0% ABV';
+  if (primaryCategory === 'Extras' || primaryCategory === 'Hampers & Gifts') return 'N/A';
+  if (primaryCategory === 'Beer') {
+    if (name.includes('lite')) return '4.2% ABV';
+    if (name.includes('dry')) return '6.0% ABV';
+    return '5.0% ABV';
+  }
+  if (primaryCategory === 'Spirits') return '35-40% ABV';
+  if (primaryCategory === 'Red Wines') return '13.5% ABV';
+  if (primaryCategory === 'White Wines') return '12.0% ABV';
+  if (primaryCategory === 'Bubbles') return '11.5% ABV';
+  return 'Ask in store';
+};
+
+const getProductDescription = (product: Product) => {
+  if (product.description?.trim()) return product.description.trim();
+
+  const primaryCategory = product.category.split(' > ')[0];
+  const volume = getProductVolumeLabel(product);
+
+  if (primaryCategory === 'Beer') {
+    return `${product.name} is a crisp, refreshing beer with a clean finish, best enjoyed chilled for everyday sessions and premium hosting moments.`;
+  }
+  if (primaryCategory === 'Spirits') {
+    return `${product.name} delivers a bold, smooth profile with a refined finish, ideal for premium pours, cocktails, and upscale nightlife service.`;
+  }
+  if (primaryCategory === 'Red Wines') {
+    return `${product.name} offers a rich red wine experience with rounded fruit notes and a smooth body that pairs beautifully with grilled dishes and formal dinners.`;
+  }
+  if (primaryCategory === 'White Wines') {
+    return `${product.name} is a bright, elegant white wine with a fresh finish, perfect for chilled service, seafood pairings, and premium occasions.`;
+  }
+  if (primaryCategory === 'Bubbles') {
+    return `${product.name} brings lively sparkle and a celebratory finish, making it a strong choice for toasts, events, and elevated gifting.`;
+  }
+  if (primaryCategory === 'Soft Drinks') {
+    return `${product.name} is a clean and refreshing non-alcoholic option in ${volume}, ideal for quick serve, mixers, and everyday convenience.`;
+  }
+  if (primaryCategory === 'Hampers & Gifts') {
+    return `${product.name} is curated for premium gifting, combining presentation and convenience for personal celebrations or corporate moments.`;
+  }
+  if (primaryCategory === 'Extras') {
+    return `${product.name} is a practical add-on selected to complete the basket and improve the overall customer shopping experience.`;
+  }
+
+  return `${product.name} is a quality selection prepared for reliable retail and wholesale service.`;
+};
+
+const ProductQuickViewModal = ({
+  product,
+  onClose,
+  onAddToCart,
+}: {
+  product: Product | null;
+  onClose: () => void;
+  onAddToCart: (item: Omit<CartItem, 'id' | 'quantity'>) => void;
+}) => {
+  if (!product) return null;
+
+  const primaryCategory = product.category.split(' > ')[0];
+  const volume = getProductVolumeLabel(product);
+  const alcoholLevel = getAlcoholLevelLabel(product);
+  const description = getProductDescription(product);
+  const packSize = Math.max(product.wholesaleUnitSize || 1, 1);
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-end justify-center bg-black/70 backdrop-blur-md" onClick={onClose}>
+      <motion.div
+        initial={{ opacity: 0, y: 48 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 48 }}
+        transition={{ type: 'spring', stiffness: 320, damping: 30 }}
+        className="w-full max-w-md overflow-hidden rounded-t-[32px] bg-[#09111f] shadow-2xl shadow-black/50"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-5 pt-3 pb-5 text-white">
+          <div className="mx-auto h-1.5 w-14 rounded-full bg-white/15" />
+
+          <div className="mt-4 flex items-start justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-orange-500/30 bg-orange-500/12 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-orange-300">
+                {primaryCategory}
+              </span>
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-slate-300">
+                {volume}
+              </span>
+            </div>
+            <button
+              onClick={onClose}
+              className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-300 transition-all active:scale-95"
+              aria-label={`Close ${product.name} details`}
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          <div className="mt-4 overflow-hidden rounded-[28px] border border-white/8 bg-gradient-to-br from-[#0f1b2d] via-[#0c1626] to-[#09111f] p-4">
+            <div className="flex items-start gap-4">
+              <div className="flex h-28 w-28 flex-shrink-0 items-center justify-center rounded-[24px] border border-white/8 bg-white/95 shadow-sm">
+                <img
+                  src={product.image}
+                  alt={product.name}
+                  className="h-full w-full object-contain p-3"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                  <Info size={12} />
+                  <span>Item Details</span>
+                </div>
+                <h3 className="mt-2 text-[24px] font-black leading-tight tracking-tight text-white">
+                  {product.name}
+                </h3>
+                <p className="mt-2 text-sm leading-6 text-slate-300">
+                  {description}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-3 gap-3">
+            <div className="rounded-[22px] border border-white/8 bg-white/5 p-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-orange-500/15 text-orange-300">
+                <GlassWater size={15} />
+              </div>
+              <p className="mt-3 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Alcohol</p>
+              <p className="mt-1 text-sm font-bold text-white">{alcoholLevel}</p>
+            </div>
+            <div className="rounded-[22px] border border-white/8 bg-white/5 p-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-500/15 text-sky-300">
+                <Package size={15} />
+              </div>
+              <p className="mt-3 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Pack Size</p>
+              <p className="mt-1 text-sm font-bold text-white">{packSize} pcs</p>
+            </div>
+            <div className="rounded-[22px] border border-white/8 bg-white/5 p-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-300">
+                <Check size={15} />
+              </div>
+              <p className="mt-3 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Stock</p>
+              <p className="mt-1 text-sm font-bold text-white">{product.stock} left</p>
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <div className="rounded-[18px] border border-white/8 bg-white/5 px-3 py-2.5">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-500/15 text-orange-300">
+                <DollarSign size={14} />
+              </div>
+              <p className="mt-2 text-[18px] font-black tracking-tight text-white">
+                {formatCurrency(product.retailPrice)}
+              </p>
+              <p className="mt-0.5 text-[10px] font-medium text-slate-400">Per piece</p>
+            </div>
+            <div className="rounded-[18px] border border-cyan-400/12 bg-gradient-to-br from-cyan-400/10 to-transparent px-3 py-2.5">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-400/15 text-cyan-200">
+                <ShoppingBag size={14} />
+              </div>
+              <p className="mt-2 text-[18px] font-black tracking-tight text-white">
+                {formatCurrency(product.wholesalePrice)}
+              </p>
+              <p className="mt-0.5 text-[10px] font-medium text-slate-400">{packSize} pcs per pack</p>
+            </div>
+          </div>
+
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <button
+              onClick={() => {
+                onAddToCart({
+                  productId: product.id,
+                  name: product.name,
+                  price: product.retailPrice,
+                  isWholesale: false,
+                });
+                onClose();
+              }}
+              className="rounded-[24px] border border-orange-400/25 bg-gradient-to-br from-[#ff6b00] to-[#ff8a3d] px-4 py-4 text-left text-white shadow-lg shadow-orange-500/25 transition-all active:scale-[0.98]"
+            >
+              <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-orange-100">
+                <Plus size={13} />
+                <span>Retail</span>
+              </div>
+              <p className="mt-3 text-base font-black">Add 1 Piece</p>
+              <p className="mt-1 text-sm text-orange-100">{formatCurrency(product.retailPrice)}</p>
+            </button>
+            <button
+              onClick={() => {
+                onAddToCart({
+                  productId: product.id,
+                  name: product.name,
+                  price: product.wholesalePrice,
+                  isWholesale: true,
+                });
+                onClose();
+              }}
+              className="rounded-[24px] border border-white/10 bg-[#111a2b] px-4 py-4 text-left text-white shadow-lg shadow-black/20 transition-all active:scale-[0.98]"
+            >
+              <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                <Package size={13} />
+                <span>Wholesale</span>
+              </div>
+              <p className="mt-3 text-base font-black">Add 1 Pack</p>
+              <p className="mt-1 text-sm text-slate-300">
+                {formatCurrency(product.wholesalePrice)} · {packSize} pcs
+              </p>
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+const Carousel = ({ slides }: { slides: any[] }) => {
   const [current, setCurrent] = useState(0);
-  const slides = [
-    { src: '/ads/ad_jinro.png', alt: 'Jinro Soju - Limited Offer 13,000 TZS' },
-    { src: '/ads/ad_hennessy.png', alt: 'Hennessy - Never Stop. Never Settle.' },
-    { src: '/ads/ad_heineken.png', alt: 'Heineken - Cold, Crispy Delivered in 30 Minutes' },
-    { src: '/ads/ad_kwv.png', alt: 'KWV Classic Collection - Starting from 34,000 TZS' },
-  ];
+  if (!slides || slides.length === 0) return null;
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -960,29 +1235,264 @@ const Carousel = () => {
   );
 };
 
-const QuickActions = () => {
-  const actions = [
-    { icon: <GlassWater size={32} strokeWidth={1.5} />, label: 'Events' },
-    { icon: <Share2 size={32} strokeWidth={1.5} />, label: 'Affiliate' },
-    { icon: <Ticket size={32} strokeWidth={1.5} />, label: 'Ticket' },
-  ];
+const QuickActions = ({ actions }: { actions: any[] }) => {
+  if (!actions || actions.length === 0) return null;
+
+  const iconMap: any = {
+    GlassWater,
+    Share2,
+    Ticket,
+    ShoppingBag,
+    Users,
+    TrendingUp,
+    Settings,
+    Truck,
+    MapPin,
+    Calendar,
+    Star,
+    Zap,
+    Gift,
+    Coffee,
+    Beer,
+    Wine
+  };
 
   return (
     <div className="flex px-6 gap-4 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-      {actions.map((action, i) => (
-        <button key={i} className="flex-1 min-w-[100px] flex flex-col items-center justify-center gap-3 py-6 bg-white rounded-2xl shadow-sm border border-gray-100 active:scale-95 transition-all">
-          <div className="text-orange-400">
-            {action.icon}
-          </div>
-          <span className="text-sm font-bold text-gray-900">{action.label}</span>
-        </button>
-      ))}
+      {actions.map((action, i) => {
+        const IconComponent = iconMap[action.iconName] || GlassWater;
+        return (
+          <button key={i} className="flex-1 min-w-[100px] flex flex-col items-center justify-center gap-3 py-6 bg-white rounded-2xl shadow-sm border border-gray-100 active:scale-95 transition-all">
+            <div className="text-orange-400">
+              <IconComponent size={32} strokeWidth={1.5} />
+            </div>
+            <span className="text-sm font-bold text-gray-900">{action.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 };
 
-const HomeTab = ({ user, setUser, products, sales, expenses, orders, setShowSettingsModal, addToCart }: { user: UserProfile | null; setUser: React.Dispatch<React.SetStateAction<UserProfile | null>>; products: Product[]; sales: Sale[]; expenses: Expense[]; orders: Order[]; setShowSettingsModal: (show: boolean) => void; addToCart: (item: any) => void }) => {
+const ManagerStats = ({ 
+  products, 
+  sales, 
+  expenses, 
+  orders, 
+  purchaseOrders, 
+  user,
+  onShowFinancialDetail,
+  onShowExpenses,
+  onShowPurchaseOrders,
+  onShowReceiveInventory,
+  setPoDraftItems
+}: { 
+  products: Product[], 
+  sales: Sale[], 
+  expenses: Expense[], 
+  orders: Order[], 
+  purchaseOrders: PurchaseOrder[],
+  user: UserProfile | null,
+  onShowFinancialDetail: (type: string) => void,
+  onShowExpenses: () => void,
+  onShowPurchaseOrders: () => void,
+  onShowReceiveInventory: () => void,
+  setPoDraftItems: (items: any) => void
+}) => {
   const navigate = useNavigate();
+  const stockValue = useMemo(() => products.reduce((sum, p) => sum + (p.costPrice * (p.stock || 0)), 0), [products]);
+  const totalExpenses = useMemo(() => expenses.reduce((sum, e) => sum + e.amount, 0), [expenses]);
+  
+  const actualRevenue = useMemo(() => orders.reduce((sum, o) => {
+    if (o.paymentStatus === 'Unpaid' && !user?.includeReceivableInRevenue) return sum;
+    return sum + o.totalCost;
+  }, 0), [orders, user?.includeReceivableInRevenue]);
+  
+  const actualCOGS = useMemo(() => sales.reduce((sum, s) => sum + (s.costPrice * s.quantity), 0), [sales]);
+  
+  const expiredCost = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return products.reduce((sum, p) => {
+      return sum + (p.batches || []).reduce((batchSum, b) => {
+        if (b.expiryDate && b.expiryDate < today && b.stock > 0) {
+          return batchSum + (b.stock * b.costPrice);
+        }
+        return batchSum;
+      }, 0);
+    }, 0);
+  }, [products]);
+
+  const actualVat = useMemo(() => user?.isVatApplicable ? actualRevenue * ((user?.vatRate || 18) / 100) : 0, [actualRevenue, user?.isVatApplicable, user?.vatRate]);
+  const actualNetProfit = useMemo(() => actualRevenue - actualVat - actualCOGS - totalExpenses - expiredCost, [actualRevenue, actualVat, actualCOGS, totalExpenses, expiredCost]);
+
+  const accountBalances = useMemo(() => {
+    const balances = { 'Cash': 0, 'Mobile Payment': 0, 'Card': 0 };
+    orders.forEach(o => {
+      if (o.paymentStatus === 'Paid' && o.paymentMode && balances[o.paymentMode as keyof typeof balances] !== undefined) {
+        balances[o.paymentMode as keyof typeof balances] += o.totalCost;
+      }
+    });
+    expenses.forEach(e => {
+      if (e.paymentMode && balances[e.paymentMode as keyof typeof balances] !== undefined) {
+        balances[e.paymentMode as keyof typeof balances] -= e.amount;
+      }
+    });
+    return balances;
+  }, [orders, expenses]);
+
+  const totalCashBank = useMemo(() => Object.values(accountBalances).reduce((a: number, b: number) => a + b, 0), [accountBalances]);
+  const reorderProducts = useMemo(() => products.filter(p => (p.stock || 0) <= (p.reorderLevel || 10)), [products]);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-black uppercase tracking-tight">Store Manager</h1>
+          <p className="text-gray-500 text-sm font-medium">Inventory & Sales Overview</p>
+        </div>
+        <button 
+          onClick={() => navigate('/manager')}
+          className="bg-[#0077B6] text-white px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-[#005f8a] transition-all shadow-lg shadow-blue-500/20 active:scale-95"
+        >
+          <Plus size={20} /> Add Item
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {/* Inventory Asset Card */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          onClick={() => onShowFinancialDetail('inventory_asset')}
+          className="bg-[#1E293B] p-4 rounded-[24px] border border-gray-800 relative overflow-hidden group shadow-xl cursor-pointer"
+        >
+          <div className="absolute top-0 right-0 w-20 h-20 bg-purple-500/5 rounded-full -mr-8 -mt-8 blur-xl group-hover:bg-purple-500/10 transition-all duration-500" />
+          <div className="relative z-10 space-y-2">
+            <div className="bg-purple-500/10 w-8 h-8 rounded-lg flex items-center justify-center text-purple-500">
+              <BarChart3 size={16} />
+            </div>
+            <div>
+              <p className="text-gray-500 text-[9px] font-bold uppercase tracking-widest mb-0.5">Inventory Asset</p>
+              <div className="flex items-baseline gap-0.5">
+                <span className="text-[10px] font-bold text-purple-900/50">TSh</span>
+                <p className="text-base font-black text-white tracking-tight">{Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short" }).format(stockValue)}</p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Total Profit Card */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          onClick={() => onShowFinancialDetail('profit')}
+          className="bg-[#1E293B] p-4 rounded-[24px] border border-gray-800 relative overflow-hidden group shadow-xl cursor-pointer"
+        >
+          <div className="absolute top-0 right-0 w-20 h-20 bg-green-500/5 rounded-full -mr-8 -mt-8 blur-xl group-hover:bg-green-500/10 transition-all duration-500" />
+          <div className="relative z-10 space-y-2">
+            <div className="bg-green-500/10 w-8 h-8 rounded-lg flex items-center justify-center text-green-500">
+              <TrendingUp size={16} />
+            </div>
+            <div>
+              <p className="text-gray-500 text-[9px] font-bold uppercase tracking-widest mb-0.5">Net Profit</p>
+              <div className="flex items-baseline gap-0.5">
+                <span className="text-[10px] font-bold text-green-900/50">TSh</span>
+                <p className={`text-base font-black tracking-tight ${actualNetProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short" }).format(actualNetProfit)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Accounts Card */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          onClick={() => onShowFinancialDetail('accounts')}
+          className="bg-[#1E293B] p-4 rounded-[24px] border border-gray-800 relative overflow-hidden group shadow-xl cursor-pointer"
+        >
+          <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/5 rounded-full -mr-8 -mt-8 blur-xl group-hover:bg-blue-500/10 transition-all duration-500" />
+          <div className="relative z-10 space-y-2">
+            <div className="bg-blue-500/10 w-8 h-8 rounded-lg flex items-center justify-center text-blue-500">
+              <DollarSign size={16} />
+            </div>
+            <div>
+              <p className="text-gray-500 text-[9px] font-bold uppercase tracking-widest mb-0.5">Accounts</p>
+              <div className="flex items-baseline gap-0.5">
+                <span className="text-[10px] font-bold text-blue-900/50">TSh</span>
+                <p className={`text-base font-black tracking-tight ${totalCashBank >= 0 ? 'text-blue-400' : 'text-red-400'}`}>
+                  {Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short" }).format(totalCashBank)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Expired Products Card */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-[#1E293B] p-4 rounded-[24px] border border-gray-800 relative overflow-hidden group shadow-xl"
+        >
+          <div className="absolute top-0 right-0 w-20 h-20 bg-red-500/5 rounded-full -mr-8 -mt-8 blur-xl group-hover:bg-red-500/10 transition-all duration-500" />
+          <div className="relative z-10 space-y-2">
+            <div className="bg-red-500/10 w-8 h-8 rounded-lg flex items-center justify-center text-red-500">
+              <AlertTriangle size={16} />
+            </div>
+            <div>
+              <p className="text-gray-500 text-[9px] font-bold uppercase tracking-widest mb-0.5">Expired Cost</p>
+              <div className="flex items-baseline gap-0.5">
+                <span className="text-[10px] font-bold text-red-900/50">TSh</span>
+                <p className="text-base font-black tracking-tight text-red-400">
+                  {Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short" }).format(expiredCost)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      <div className="space-y-3">
+        <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Management Tools</h3>
+        <div className="grid grid-cols-3 gap-2">
+          <button onClick={onShowExpenses} className="flex flex-col items-center justify-center gap-2 p-3 bg-[#1E293B] border border-gray-800 rounded-2xl hover:bg-[#2D3748] transition-all active:scale-95 group shadow-lg relative overflow-hidden">
+            <div className="bg-[#0077B6]/10 p-3 rounded-xl text-[#0077B6] group-hover:bg-[#0077B6] group-hover:text-white transition-all"><DollarSign size={20} /></div>
+            <div className="text-center space-y-0.5">
+              <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Expense</span>
+              <span className="text-xs font-black text-white">TSh {Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short" }).format(totalExpenses)}</span>
+            </div>
+          </button>
+          <button onClick={() => {
+            const initialDrafts: any = {};
+            reorderProducts.forEach(p => {
+              const suggestedPcs = (p.reorderLevel * 2) - (p.stock || 0);
+              initialDrafts[p.id] = { qty: Math.ceil(suggestedPcs / p.wholesaleUnitSize), cost: p.buyingPricePerCarton };
+            });
+            setPoDraftItems(initialDrafts);
+            onShowPurchaseOrders();
+          }} className="flex flex-col items-center justify-center gap-2 p-3 bg-[#1E293B] border border-gray-800 rounded-2xl hover:bg-[#2D3748] transition-all active:scale-95 group shadow-lg relative overflow-hidden">
+            <div className="bg-orange-500/10 p-3 rounded-xl text-orange-500 group-hover:bg-orange-500 group-hover:text-white transition-all relative"><ShoppingCart size={20} />{reorderProducts.length > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-[#1E293B] animate-pulse">{reorderProducts.length}</span>}</div>
+            <div className="text-center space-y-0.5">
+              <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Orders</span>
+              <span className="text-xs font-black text-white">{reorderProducts.length} to Order</span>
+            </div>
+          </button>
+          <button onClick={onShowReceiveInventory} className="flex flex-col items-center justify-center gap-2 p-3 bg-[#1E293B] border border-gray-800 rounded-2xl hover:bg-[#2D3748] transition-all active:scale-95 group shadow-lg relative overflow-hidden">
+            <div className="bg-green-500/10 p-3 rounded-xl text-green-500 group-hover:bg-green-500 group-hover:text-white transition-all relative"><PackagePlus size={20} />{purchaseOrders.filter(po => po.status === 'Pending').length > 0 && <span className="absolute -top-1 -right-1 bg-green-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-[#1E293B]">{purchaseOrders.filter(po => po.status === 'Pending').length}</span>}</div>
+            <div className="text-center space-y-0.5">
+              <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Receive</span>
+              <span className="text-xs font-black text-white">{purchaseOrders.filter(po => po.status === 'Pending').length} Pending</span>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const HomeTab = ({ user, setUser, products, sales, expenses, orders, ads, quickActions, categories, setShowSettingsModal, addToCart, purchaseOrders }: { user: UserProfile | null; setUser: React.Dispatch<React.SetStateAction<UserProfile | null>>; products: Product[]; sales: Sale[]; expenses: Expense[]; orders: Order[]; ads: any[]; quickActions: any[]; categories: any[]; setShowSettingsModal: (show: boolean) => void; addToCart: (item: any) => void; purchaseOrders?: PurchaseOrder[] }) => {
+  const navigate = useNavigate();
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const handleProductAdd = (item: any) => {
     addToCart(item);
@@ -990,14 +1500,44 @@ const HomeTab = ({ user, setUser, products, sales, expenses, orders, setShowSett
 
   return (
     <div className="space-y-6 pb-32 bg-gray-50 min-h-screen">
-      <Carousel />
-      <QuickActions />
+      <AnimatePresence>
+        {selectedProduct && (
+          <ProductQuickViewModal
+            product={selectedProduct}
+            onClose={() => setSelectedProduct(null)}
+            onAddToCart={handleProductAdd}
+          />
+        )}
+      </AnimatePresence>
+
+      {user?.role === 'manager' ? (
+        <div className="px-6 pt-6">
+          <ManagerStats 
+            products={products}
+            sales={sales}
+            expenses={expenses}
+            orders={orders}
+            purchaseOrders={purchaseOrders}
+            user={user}
+            onShowFinancialDetail={() => navigate('/manager')}
+            onShowExpenses={() => navigate('/manager')}
+            onShowPurchaseOrders={() => navigate('/manager')}
+            onShowReceiveInventory={() => navigate('/manager')}
+            setPoDraftItems={() => {}}
+          />
+        </div>
+      ) : (
+        <>
+          <Carousel slides={ads} />
+          <QuickActions actions={quickActions} />
+        </>
+      )}
       
       <div className="px-6 space-y-4 pt-2">
         <h2 className="text-xl font-bold text-gray-900 uppercase tracking-wide">SHOP FOR</h2>
 
         <div className="grid grid-cols-2 gap-4">
-          {CLIENT_CATEGORIES.map((cat) => (
+          {categories.map((cat) => (
             <motion.button 
               key={cat.id}
               whileHover={{ scale: 1.02 }}
@@ -1016,7 +1556,7 @@ const HomeTab = ({ user, setUser, products, sales, expenses, orders, setShowSett
         </div>
       </div>
 
-      {CLIENT_CATEGORIES.map(cat => {
+      {categories.map(cat => {
         const categoryProducts = products.filter(p => p.category === cat.id || (p.category && p.category.startsWith(`${cat.id} > `)));
         if (categoryProducts.length === 0) return null;
 
@@ -1033,7 +1573,12 @@ const HomeTab = ({ user, setUser, products, sales, expenses, orders, setShowSett
             </div>
             <div className="flex overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] w-full snap-x snap-mandatory border-t border-gray-100">
               {categoryProducts.slice(0, 10).map(p => (
-                <HorizontalProductCard key={p.id} product={p} onAddToCart={handleProductAdd} />
+                <HorizontalProductCard
+                  key={p.id}
+                  product={p}
+                  onAddToCart={handleProductAdd}
+                  onOpenProduct={setSelectedProduct}
+                />
               ))}
             </div>
           </div>
@@ -1042,7 +1587,7 @@ const HomeTab = ({ user, setUser, products, sales, expenses, orders, setShowSett
 
       {(() => {
         const matchedProductIds = new Set();
-        CLIENT_CATEGORIES.forEach(cat => {
+        categories.forEach(cat => {
           products.forEach(p => {
             if (p.category === cat.id || (p.category && p.category.startsWith(`${cat.id} > `))) {
               matchedProductIds.add(p.id);
@@ -1059,7 +1604,12 @@ const HomeTab = ({ user, setUser, products, sales, expenses, orders, setShowSett
             </div>
             <div className="flex overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] w-full snap-x snap-mandatory border-t border-gray-100">
               {unclassifiedProducts.slice(0, 10).map(p => (
-                <HorizontalProductCard key={p.id} product={p} onAddToCart={handleProductAdd} />
+                <HorizontalProductCard
+                  key={p.id}
+                  product={p}
+                  onAddToCart={handleProductAdd}
+                  onOpenProduct={setSelectedProduct}
+                />
               ))}
             </div>
           </div>
@@ -1183,21 +1733,9 @@ const OrderDetailsModal = ({ order, onClose }: { order: OrderActivity; onClose: 
   );
 };
 
-const MapLoader = ({ apiKey, children }: { apiKey: string; children: (isLoaded: boolean) => React.ReactNode }) => {
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: apiKey,
-    libraries: LIBRARIES
-  });
-  return <>{children(isLoaded)}</>;
-};
-
-const MapProvider = ({ apiKey, children }: { apiKey: string; children: (isLoaded: boolean) => React.ReactNode }) => {
-  const isValidKey = apiKey && apiKey !== "" && apiKey !== "your_api_key_here" && apiKey !== "AIzaSyANXgw02rPWOY9DWMKtgrclXSTE3k9DoNU";
-  if (!isValidKey) {
-    return <>{children(false)}</>;
-  }
-  return <MapLoader apiKey={apiKey}>{children}</MapLoader>;
+const MapProvider = ({ children }: { children: (isLoaded: boolean) => React.ReactNode }) => {
+  // Leaflet loads immediately, no API key needed for local tile server
+  return <>{children(true)}</>;
 };
 
 const ProfileModal = ({ user, onClose, onOpenMapConfig }: { user: UserProfile; onClose: () => void; onOpenMapConfig: () => void }) => {
@@ -1358,9 +1896,23 @@ const ProfileModal = ({ user, onClose, onOpenMapConfig }: { user: UserProfile; o
   );
 };
 
-const HorizontalProductCard = ({ product, onAddToCart, ...props }: { product: Product, onAddToCart: (item: any) => void, [key: string]: any }) => {
+const HorizontalProductCard = ({
+  product,
+  onAddToCart,
+  onOpenProduct,
+  ...props
+}: {
+  product: Product,
+  onAddToCart: (item: any) => void,
+  onOpenProduct?: (product: Product) => void,
+  [key: string]: any
+}) => {
   return (
-    <div className="flex-shrink-0 w-[50vw] max-w-[220px] flex flex-col bg-white border-r border-b border-gray-100 p-6 relative group snap-start hover:bg-gray-50/30 transition-all duration-300" {...props}>
+    <div
+      className="flex-shrink-0 w-[50vw] max-w-[220px] flex cursor-pointer flex-col bg-white border-r border-b border-gray-100 p-6 relative group snap-start hover:bg-gray-50/30 transition-all duration-300"
+      onClick={() => onOpenProduct?.(product)}
+      {...props}
+    >
       {product.featured && (
         <div className="absolute top-4 left-6 z-10">
           <div className="bg-orange-600 text-white text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-widest shadow-lg shadow-orange-600/20">
@@ -1391,6 +1943,60 @@ const HorizontalProductCard = ({ product, onAddToCart, ...props }: { product: Pr
         <div className="text-gray-500 text-sm leading-tight font-medium uppercase tracking-tight line-clamp-2">
           {product.name}
         </div>
+      </div>
+    </div>
+  );
+};
+
+const renderShowcaseProductCard = (
+  product: Product,
+  onAddToCart: (item: any) => void,
+  onOpenProduct: (product: Product) => void,
+  key: string
+) => {
+  const retailPrice = Number(product.retailPrice) || 0;
+  const discountText = (product.discount || '').trim();
+  const percentMatch = discountText.match(/(\d+)\s*%/);
+  const estimatedOriginalPrice = percentMatch
+    ? Math.round(retailPrice / (1 - Number(percentMatch[1]) / 100))
+    : null;
+
+  return (
+    <div
+      key={key}
+      className="flex-shrink-0 w-[240px] cursor-pointer bg-white border-r border-gray-200 p-4 relative snap-start"
+      onClick={() => onOpenProduct(product)}
+    >
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onAddToCart({ productId: product.id, name: product.name, price: retailPrice, isWholesale: false });
+        }}
+        className="absolute top-4 right-4 text-[#d9902f] hover:scale-110 active:scale-95 transition-transform"
+        aria-label={`Add ${product.name} to cart`}
+      >
+        <Plus size={24} strokeWidth={1.8} />
+      </button>
+
+      <div className="aspect-[4/5] w-full flex items-center justify-center px-4 py-6">
+        {product.image ? (
+          <img
+            src={product.image}
+            alt={product.name}
+            className="w-full h-full object-contain"
+            referrerPolicy="no-referrer"
+          />
+        ) : (
+          <div className="w-full h-full bg-gray-100 rounded-2xl" />
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-[17px] font-black text-gray-900">TZS. {retailPrice.toLocaleString()}</p>
+        {estimatedOriginalPrice && estimatedOriginalPrice > retailPrice && (
+          <p className="text-sm text-gray-300 line-through font-bold">TZS. {estimatedOriginalPrice.toLocaleString()}</p>
+        )}
+        <p className="text-[15px] text-gray-700 leading-tight line-clamp-2">{product.name}</p>
       </div>
     </div>
   );
@@ -1431,6 +2037,7 @@ const VerticalProductListItem: React.FC<{ product: Product, onAddToCart: (item: 
 
 const ProductsTab = ({ 
   products, 
+  categories,
   isWholesale, 
   setIsWholesale, 
   addToCart,
@@ -1441,6 +2048,7 @@ const ProductsTab = ({
   cartCount = 0
 }: { 
   products: Product[]; 
+  categories: any[];
   isWholesale: boolean; 
   setIsWholesale: (v: boolean) => void; 
   addToCart: (item: Omit<CartItem, 'id' | 'quantity'>) => void;
@@ -1456,21 +2064,28 @@ const ProductsTab = ({
   const urlCategory = searchParams.get('category');
 
   const [category, setCategory] = useState(urlCategory || 'All');
+  const [quantityFilter, setQuantityFilter] = useState<number | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   useEffect(() => {
     if (!urlCategory || urlCategory === 'All') {
-      setCategory(CLIENT_CATEGORIES[0].id);
+      setCategory(categories.length > 0 ? categories[0].id : CLIENT_CATEGORIES[0].id);
     } else {
       setCategory(urlCategory);
     }
-  }, [urlCategory]);
+  }, [urlCategory, categories]);
 
   const filteredProducts = useMemo(() => {
     let filtered = products;
     if (category !== 'All') {
       filtered = products.filter(p => p.category === category || (p.category && p.category.startsWith(`${category} > `)));
     }
+    
+    if (quantityFilter) {
+      filtered = filtered.filter(p => (p.numCartons || 0) >= quantityFilter);
+    }
+
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(p => 
@@ -1479,7 +2094,20 @@ const ProductsTab = ({
       );
     }
     return filtered;
-  }, [products, category, searchQuery]);
+  }, [products, category, searchQuery, quantityFilter]);
+
+  const featuredProducts = useMemo(() => {
+    const featured = filteredProducts.filter((product) => product.featured);
+    return featured.length > 0 ? featured : filteredProducts.slice(0, 12);
+  }, [filteredProducts]);
+
+  const offerProducts = useMemo(() => {
+    const offers = filteredProducts.filter((product) => {
+      const discount = (product.discount || '').trim().toLowerCase();
+      return discount && discount !== 'null' && discount !== 'none' && discount !== '0% off';
+    });
+    return offers.length > 0 ? offers : filteredProducts.slice(0, 12);
+  }, [filteredProducts]);
 
   const handleProductAdd = (item: Omit<CartItem, 'id'>) => {
     addToCart(item);
@@ -1487,15 +2115,15 @@ const ProductsTab = ({
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-    const secondaryCategories = (CATEGORIES as any)[category] || [];
+  const isCategoryDetailView = Boolean(urlCategory && urlCategory !== 'All');
+  const secondaryCategories = (CATEGORIES as any)[category] || [];
 
-    const originalCategoryLabel = CLIENT_CATEGORIES.find(c => c.id === category)?.name || category;
-
+  if (isCategoryDetailView) {
     return (
       <div className="bg-white min-h-screen pb-32 font-sans relative">
         <AnimatePresence>
           {toastMessage && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
@@ -1505,11 +2133,20 @@ const ProductsTab = ({
             </motion.div>
           )}
         </AnimatePresence>
+        <AnimatePresence>
+          {selectedProduct && (
+            <ProductQuickViewModal
+              product={selectedProduct}
+              onClose={() => setSelectedProduct(null)}
+              onAddToCart={handleProductAdd}
+            />
+          )}
+        </AnimatePresence>
 
-        <div className="bg-white/80 backdrop-blur-xl sticky top-0 z-40 px-6 py-5 flex items-center justify-between border-b border-gray-100/50">
+        <div className="bg-white/95 backdrop-blur-xl sticky top-0 z-40 px-6 py-5 flex items-center justify-between border-b border-gray-100/50">
           <div className="flex items-center gap-6">
-            <button 
-              onClick={() => { navigate(-1); }} 
+            <button
+              onClick={() => navigate('/products')}
               className="text-gray-900 hover:bg-gray-100 p-2 rounded-xl transition-colors active:scale-90"
             >
               <ArrowLeft size={24} strokeWidth={2.5} />
@@ -1518,8 +2155,8 @@ const ProductsTab = ({
               {category === 'Beer' ? 'Beers' : category}
             </h1>
           </div>
-          <button 
-            onClick={() => navigate('/cart')} 
+          <button
+            onClick={() => navigate('/cart')}
             className="relative text-gray-900 hover:bg-gray-100 p-2 rounded-xl transition-colors active:scale-90"
           >
             <ShoppingCart size={24} strokeWidth={2.5} />
@@ -1536,48 +2173,45 @@ const ProductsTab = ({
             <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
               <Search className="text-gray-400 group-focus-within:text-[#ff6b00] transition-colors" size={20} />
             </div>
-            <input 
-              type="text" 
-              placeholder="Search in Category..." 
+            <input
+              type="text"
+              placeholder="Search in Category..."
               value={searchQuery || ''}
               onChange={(e) => setSearchQuery && setSearchQuery(e.target.value)}
-              className="w-full bg-gray-50/50 border border-gray-200 rounded-[1.25rem] py-4 pl-12 pr-4 text-[15px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-[#ff6b00]/5 focus:border-[#ff6b00]/30 transition-all font-medium" 
+              className="w-full bg-gray-50/50 border border-gray-200 rounded-[1.25rem] py-4 pl-12 pr-4 text-[15px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-[#ff6b00]/5 focus:border-[#ff6b00]/30 transition-all font-medium"
             />
           </div>
-
-          <div className="flex gap-4 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] py-1 px-6">
-            {CLIENT_CATEGORIES.map((c) => {
-              const isActive = category === c.id;
-              return (
-                <button 
-                  key={c.id} 
-                  onClick={() => { setCategory(c.id); navigate(`/products?category=${c.id}`); }}
-                  className={`relative flex-shrink-0 w-[140px] h-[105px] rounded-[24px] overflow-hidden group transition-all duration-500 active:scale-95 ${isActive ? 'ring-2 ring-[#ff6b00] ring-offset-4 ring-offset-white shadow-2xl shadow-[#ff6b00]/10' : 'shadow-sm border border-gray-100 hover:shadow-md'}`}
-                >
-                  <img src={c.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" referrerPolicy="no-referrer" />
-                  <div className={`absolute inset-0 bg-gradient-to-t ${isActive ? 'from-black/90 via-black/40' : 'from-black/70 via-black/20'} to-transparent transition-opacity duration-300`} />
-                  <div className="absolute bottom-3 left-2 right-2">
-                    <div className={`py-1.5 px-3 rounded-xl backdrop-blur-md border border-white/20 flex items-center justify-center transition-all duration-300 ${isActive ? 'bg-[#ff6b00] shadow-xl shadow-[#ff6b00]/20 border-none scale-105' : 'bg-white/10 hover:bg-white/20'}`}>
-                      <span className="text-white text-[10px] font-black uppercase tracking-[0.15em] truncate drop-shadow-md">
-                        {c.name}
-                      </span>
-                    </div>
-                  </div>
-                  {isActive && (
-                    <motion.div 
-                      layoutId="active-shine"
-                      className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"
-                    />
-                  )}
-                </button>
-              );
-            })}
-          </div>
         </div>
-        
+
+        <CategorySlider
+          activeCategory={category}
+          categories={categories}
+          onSelectCategory={(nextCategory) => {
+            setCategory(nextCategory);
+            navigate(`/products?category=${nextCategory}`);
+          }}
+        />
+
+        <div className="bg-white px-6 py-4 border-b border-gray-100 flex items-center gap-4 overflow-x-auto no-scrollbar">
+          <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 whitespace-nowrap">Quantity:</span>
+          {[6, 12, 24, 100].map(q => (
+            <button
+              key={q}
+              onClick={() => setQuantityFilter(quantityFilter === q ? null : q)}
+              className={`px-4 py-2 rounded-full text-xs font-bold transition-all border ${
+                quantityFilter === q 
+                  ? 'bg-[#ff6b00] text-white border-[#ff6b00] shadow-lg shadow-orange-500/20' 
+                  : 'bg-gray-50 text-gray-400 border-gray-100 hover:border-gray-300'
+              }`}
+            >
+              {q}+
+            </button>
+          ))}
+        </div>
+
         {category === 'Beer' && (
           <div className="px-6 mt-6">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-orange-500 to-[#ff6b00] p-8 text-white shadow-2xl shadow-orange-500/20"
@@ -1586,7 +2220,7 @@ const ProductsTab = ({
                 <div className="flex items-center gap-2 bg-white/20 w-fit px-3 py-1 rounded-full backdrop-blur-sm">
                   <span className="text-[10px] font-black uppercase tracking-widest text-white">Weekly Special</span>
                 </div>
-                <h3 className="text-3xl font-black leading-tight tracking-tight">KILI SPECIAL<br/>OFFER 🍻</h3>
+                <h3 className="text-3xl font-black leading-tight tracking-tight">KILI SPECIAL<br />OFFER</h3>
                 <p className="text-sm font-medium opacity-90 max-w-[220px] leading-relaxed">
                   Get up to <span className="text-white font-black underline decoration-2 underline-offset-4">15% OFF</span> on all local beer crates this weekend!
                 </p>
@@ -1612,7 +2246,7 @@ const ProductsTab = ({
 
         <div className="space-y-10 pt-8">
           {secondaryCategories.map((subCat: string) => {
-            const subCatProducts = filteredProducts.filter(p => p.category === `${category} > ${subCat}`);
+            const subCatProducts = filteredProducts.filter((p) => p.category === `${category} > ${subCat}`);
             if (subCatProducts.length === 0) return null;
 
             return (
@@ -1624,14 +2258,15 @@ const ProductsTab = ({
                   </button>
                 </div>
                 <div className="flex overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                  {subCatProducts.map(p => (
-                    <HorizontalProductCard 
-                      key={p.id} 
-                      product={p} 
+                  {subCatProducts.map((p) => (
+                    <HorizontalProductCard
+                      key={p.id}
+                      product={p}
                       onAddToCart={handleProductAdd}
+                      onOpenProduct={setSelectedProduct}
                     />
                   ))}
-                  <div className="flex-shrink-0 w-4 h-full" /> {/* Padding at the end */}
+                  <div className="flex-shrink-0 w-4 h-full" />
                 </div>
               </div>
             );
@@ -1644,173 +2279,206 @@ const ProductsTab = ({
                 <button className="text-[15px] text-black font-medium">View All</button>
               </div>
               <div className="flex overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                {filteredProducts.map(p => (
-                  <HorizontalProductCard 
-                    key={p.id} 
-                    product={p} 
+                {filteredProducts.map((p) => (
+                  <HorizontalProductCard
+                    key={p.id}
+                    product={p}
                     onAddToCart={handleProductAdd}
+                    onOpenProduct={setSelectedProduct}
                   />
                 ))}
                 <div className="flex-shrink-0 w-4 h-full" />
               </div>
             </div>
           )}
-
-          {/* Fallback for products in this primary category but not in any defined secondary category */}
-          {(() => {
-            const matchedProducts = new Set();
-            secondaryCategories.forEach((subCat: string) => {
-              filteredProducts.filter(p => p.category === `${category} > ${subCat}`).forEach(p => matchedProducts.add(p.id));
-            });
-            const unclassifiedProducts = filteredProducts.filter(p => !matchedProducts.has(p.id));
-            if (unclassifiedProducts.length === 0) return null;
-            return (
-              <div key="unclassified" className="space-y-3">
-                <div className="flex items-center justify-between px-6">
-                  <h3 className="text-[20px] font-bold text-black uppercase">OTHERS</h3>
-                  <span className="text-[12px] text-gray-500 font-bold uppercase">{unclassifiedProducts.length} items</span>
-                </div>
-                <div className="flex overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                  {unclassifiedProducts.map(p => (
-                    <HorizontalProductCard 
-                      key={p.id} 
-                      product={p} 
-                      onAddToCart={handleProductAdd}
-                    />
-                  ))}
-                  <div className="flex-shrink-0 w-4 h-full" />
-                </div>
-              </div>
-            );
-          })()}
         </div>
       </div>
     );
-};
-
-const MAP_CONTAINER_STYLE = { width: '100%', height: '100%' };
-const DAR_ES_SALAAM_CENTER = { lat: -6.7924, lng: 39.2083 };
-const HUB_LOCATION = { lat: -6.7724, lng: 39.2283 }; // Mock B-Hub location
-
-const MapComponent = ({ isLoaded, destination, progress, showRoute = true }: { isLoaded: boolean, destination?: { lat: number, lng: number }, progress?: number, showRoute?: boolean }) => {
-  // @ts-ignore
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-  const userApiKey = localStorage.getItem('GOOGLE_MAPS_API_KEY');
-  const activeKey = (apiKey && apiKey !== "your_api_key_here" && apiKey !== "AIzaSyANXgw02rPWOY9DWMKtgrclXSTE3k9DoNU") ? apiKey : userApiKey;
-  
-  const [directions, setDirections] = useState<any>(null);
-  const [mapError, setMapError] = useState<string | null>(null);
-
-  const destLat = destination?.lat;
-  const destLng = destination?.lng;
-
-  useEffect(() => {
-    if (isLoaded && destLat && destLng && showRoute && typeof window.google !== 'undefined') {
-      const service = new window.google.maps.DirectionsService();
-      service.route(
-        {
-          origin: HUB_LOCATION,
-          destination: { lat: destLat, lng: destLng },
-          travelMode: window.google.maps.TravelMode.DRIVING,
-        },
-        (result, status) => {
-          if (status === window.google.maps.DirectionsStatus.OK) {
-            setDirections(result);
-            setMapError(null);
-          } else {
-            console.error('Directions request failed due to ' + status);
-            setMapError(`Directions request failed: ${status}`);
-          }
-        }
-      );
-    }
-  }, [isLoaded, destLat, destLng, showRoute]);
-
-  // If no key is provided or it's the placeholder
-  if (!activeKey || activeKey === "your_api_key_here") {
-    return (
-      <div className="w-full h-full bg-gray-900 flex flex-col items-center justify-center p-6 text-center space-y-4">
-        <div className="bg-yellow-500/10 p-4 rounded-full text-yellow-500">
-          <Info size={32} />
-        </div>
-        <div className="space-y-2">
-          <p className="text-white font-bold">Google Maps API Key Required</p>
-          <p className="text-gray-400 text-xs leading-relaxed">
-            A valid Google Maps API key is required to enable maps and address search. Please configure it in your profile settings.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 text-[#0077B6] text-xs font-bold">
-          <User size={14} />
-          <span>Profile &gt; Map Settings</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isLoaded) return <div className="w-full h-full bg-gray-800 animate-pulse flex items-center justify-center text-gray-500">Loading Map...</div>;
-
-  // Calculate truck position based on progress along the route
-  let truckPos = HUB_LOCATION;
-  if (directions && progress !== undefined) {
-    const route = directions.routes[0].overview_path;
-    const index = Math.floor((progress / 100) * (route.length - 1));
-    truckPos = { lat: route[index].lat(), lng: route[index].lng() };
   }
 
   return (
-    <GoogleMap
-      mapContainerStyle={MAP_CONTAINER_STYLE}
+    <div className="bg-white min-h-screen pb-32 font-sans relative">
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-[#ff6b00] text-white px-6 py-3 rounded-full shadow-2xl font-bold text-sm whitespace-nowrap"
+          >
+            {toastMessage}
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {selectedProduct && (
+          <ProductQuickViewModal
+            product={selectedProduct}
+            onClose={() => setSelectedProduct(null)}
+            onAddToCart={handleProductAdd}
+          />
+        )}
+      </AnimatePresence>
+
+      <div className="sticky top-0 z-40 bg-white">
+        <div className="bg-white px-4 py-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/')}
+              className="text-white p-2 rounded-full hover:bg-white/10 active:scale-90 transition-all"
+              aria-label="Back to home"
+            >
+              <ArrowLeft size={26} strokeWidth={2.3} />
+            </button>
+
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={22} />
+              <input
+                type="text"
+                placeholder="Search products"
+                value={searchQuery || ''}
+                onChange={(e) => setSearchQuery && setSearchQuery(e.target.value)}
+                className="w-full rounded-lg bg-white py-4 pl-12 pr-4 text-[17px] text-gray-900 placeholder-gray-400 focus:outline-none"
+              />
+            </div>
+          </div>
+        </div>
+
+        <CategorySlider
+          activeCategory={category}
+          categories={categories}
+          onSelectCategory={(nextCategory) => {
+            setCategory(nextCategory);
+            navigate(`/products?category=${nextCategory}`);
+          }}
+        />
+
+        <div className="bg-white px-4 py-4 border-b border-gray-100 flex items-center gap-4 overflow-x-auto no-scrollbar">
+          <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 whitespace-nowrap">Quantity:</span>
+          {[6, 12, 24, 100].map(q => (
+            <button
+              key={q}
+              onClick={() => setQuantityFilter(quantityFilter === q ? null : q)}
+              className={`px-4 py-2 rounded-full text-xs font-bold transition-all border ${
+                quantityFilter === q 
+                  ? 'bg-[#ff6b00] text-white border-[#ff6b00] shadow-lg shadow-orange-500/20' 
+                  : 'bg-gray-50 text-gray-400 border-gray-100 hover:border-gray-300'
+              }`}
+            >
+              {q}+
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-10 pt-8">
+        <section className="space-y-4">
+          <div className="px-4">
+            <h2 className="text-[24px] font-medium tracking-wide uppercase text-black">Featured Products</h2>
+          </div>
+          <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <div className="flex snap-x snap-mandatory border-y border-gray-200 bg-white">
+              {featuredProducts.map((product) => (
+                renderShowcaseProductCard(product, handleProductAdd, setSelectedProduct, product.id)
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <div className="px-4">
+            <h2 className="text-[24px] font-medium tracking-wide uppercase text-black">Offers</h2>
+          </div>
+          <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <div className="flex snap-x snap-mandatory border-y border-gray-200 bg-white">
+              {offerProducts.map((product) => (
+                renderShowcaseProductCard(product, handleProductAdd, setSelectedProduct, `offer-${product.id}`)
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {filteredProducts.length === 0 && (
+          <div className="px-4">
+            <div className="bg-white rounded-3xl p-8 text-center shadow-sm border border-gray-200">
+              <p className="text-xl font-bold text-gray-900">No products found</p>
+              <p className="text-sm text-gray-500 mt-2">Try another category or search term.</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const DAR_ES_SALAAM_CENTER = { lat: -6.7924, lng: 39.2083 };
+const HUB_LOCATION = { lat: -6.7724, lng: 39.2283 }; // Mock B-Hub location
+
+// Fix for default marker icons in Leaflet
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
+
+const MapComponent = ({ isLoaded, destination, progress, showRoute = true }: { isLoaded: boolean, destination?: { lat: number, lng: number }, progress?: number, showRoute?: boolean }) => {
+  const [map, setMap] = useState<any>(null);
+  const [mapError, setMapError] = useState<string | null>(null);
+
+  if (!isLoaded) return <div className="w-full h-full bg-gray-800 animate-pulse flex items-center justify-center text-gray-500">Loading Map...</div>;
+
+  // Calculate truck position based on progress (simplified for now)
+  let truckPos = HUB_LOCATION;
+  if (destination && progress !== undefined) {
+    // Simple linear interpolation between hub and destination
+    const lat = HUB_LOCATION.lat + (destination.lat - HUB_LOCATION.lat) * (progress / 100);
+    const lng = HUB_LOCATION.lng + (destination.lng - HUB_LOCATION.lng) * (progress / 100);
+    truckPos = { lat, lng };
+  }
+
+  return (
+    <MapContainer
       center={truckPos || DAR_ES_SALAAM_CENTER}
       zoom={13}
-      options={{
-        disableDefaultUI: true,
-        styles: [
-          { "elementType": "geometry", "stylers": [{ "color": "#242f3e" }] },
-          { "elementType": "labels.text.fill", "stylers": [{ "color": "#746855" }] },
-          { "elementType": "labels.text.stroke", "stylers": [{ "color": "#242f3e" }] },
-          { "featureType": "administrative.locality", "elementType": "labels.text.fill", "stylers": [{ "color": "#d59563" }] },
-          { "featureType": "poi", "elementType": "labels.text.fill", "stylers": [{ "color": "#d59563" }] },
-          { "featureType": "poi.park", "elementType": "geometry", "stylers": [{ "color": "#263c3f" }] },
-          { "featureType": "poi.park", "elementType": "labels.text.fill", "stylers": [{ "color": "#6b9a76" }] },
-          { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#38414e" }] },
-          { "featureType": "road", "elementType": "geometry.stroke", "stylers": [{ "color": "#212a37" }] },
-          { "featureType": "road", "elementType": "labels.text.fill", "stylers": [{ "color": "#9ca5b3" }] },
-          { "featureType": "road.highway", "elementType": "geometry", "stylers": [{ "color": "#746855" }] },
-          { "featureType": "road.highway", "elementType": "geometry.stroke", "stylers": [{ "color": "#1f2835" }] },
-          { "featureType": "road.highway", "elementType": "labels.text.fill", "stylers": [{ "color": "#f3d19c" }] },
-          { "featureType": "transit", "elementType": "geometry", "stylers": [{ "color": "#2f3948" }] },
-          { "featureType": "transit.station", "elementType": "labels.text.fill", "stylers": [{ "color": "#d59563" }] },
-          { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#17263c" }] },
-          { "featureType": "water", "elementType": "labels.text.fill", "stylers": [{ "color": "#515c6d" }] },
-          { "featureType": "water", "elementType": "labels.text.stroke", "stylers": [{ "color": "#17263c" }] }
-        ]
-      }}
+      style={{ width: '100%', height: '100%' }}
+      ref={setMap}
     >
-      {directions && <DirectionsRenderer directions={directions} options={{ suppressMarkers: true, polylineOptions: { strokeColor: '#0077B6', strokeOpacity: 0.8, strokeWeight: 5 } }} />}
+      <TileLayer
+        url="http://45.88.188.129:9095/styles/basic/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="http://45.88.188.129:9095">Local Tile Server</a>'
+      />
       
       {mapError && (
-        <div className="absolute top-4 left-4 right-4 bg-red-500/90 text-white p-2 rounded-lg text-xs font-medium z-20 flex items-center gap-2">
+        <div className="absolute top-4 left-4 right-4 bg-red-500/90 text-white p-2 rounded-lg text-xs font-medium z-[1000] flex items-center gap-2">
           <Info size={14} />
           <span>{mapError}</span>
         </div>
       )}
       
-      <Marker position={HUB_LOCATION} icon={{ url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png' }} />
-      {destination && <Marker position={destination} icon={{ url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png' }} />}
-      {progress !== undefined && typeof window.google !== 'undefined' && (
-        <Marker 
-          position={truckPos} 
-          icon={{ 
-            url: 'https://cdn-icons-png.flaticon.com/512/2554/2554978.png', // Truck icon
-            scaledSize: new window.google.maps.Size(40, 40)
-          }} 
-        />
+      {/* Hub Location Marker */}
+      <Marker position={[HUB_LOCATION.lat, HUB_LOCATION.lng]}>
+        <Popup>B-Hub Hub</Popup>
+      </Marker>
+      
+      {/* Destination Marker */}
+      {destination && (
+        <Marker position={[destination.lat, destination.lng]}>
+          <Popup>Delivery Destination</Popup>
+        </Marker>
       )}
-    </GoogleMap>
+      
+      {/* Truck Position Marker */}
+      {progress !== undefined && (
+        <Marker position={[truckPos.lat, truckPos.lng]}>
+          <Popup>Delivery Truck ({progress}% complete)</Popup>
+        </Marker>
+      )}
+    </MapContainer>
   );
 };
 
-const CheckoutFlow = ({ isOpen, onClose, cart, isLoaded, onComplete, userName, selectedCustomer }: { 
+const CheckoutFlow = ({ isOpen, onClose, cart, isLoaded, onComplete, userName, selectedCustomer, vehicles, paymentMethods }: { 
   isOpen: boolean; 
   onClose: () => void; 
   cart: CartItem[]; 
@@ -1829,11 +2497,19 @@ const CheckoutFlow = ({ isOpen, onClose, cart, isLoaded, onComplete, userName, s
   }) => void;
   userName: string;
   selectedCustomer?: Customer | null;
+  vehicles: any[];
+  paymentMethods: any[];
 }) => {
   const [step, setStep] = useState(1);
   const [selectedAddress, setSelectedAddress] = useState<{id: number, name: string, address: string, distance: string, lat: number, lng: number} | null>(null);
-  const [selectedTruck, setSelectedTruck] = useState<typeof TRUCKS[0] | null>(null);
-  const [selectedPayment, setSelectedPayment] = useState(PAYMENT_METHODS[0]);
+  const [selectedTruck, setSelectedTruck] = useState<any | null>(null);
+  const [selectedPayment, setSelectedPayment] = useState<any | null>(null);
+
+  useEffect(() => {
+    if (paymentMethods && paymentMethods.length > 0 && !selectedPayment) {
+      setSelectedPayment(paymentMethods[0]);
+    }
+  }, [paymentMethods, selectedPayment]);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [trackingProgress, setTrackingProgress] = useState(0);
 
@@ -2036,7 +2712,7 @@ const CheckoutFlow = ({ isOpen, onClose, cart, isLoaded, onComplete, userName, s
               </div>
 
               <div className="space-y-3">
-                {TRUCKS.map((truck) => (
+                {vehicles.map((truck) => (
                   <button 
                     key={truck.id}
                     onClick={() => setSelectedTruck(truck)}
@@ -2282,14 +2958,14 @@ const CheckoutFlow = ({ isOpen, onClose, cart, isLoaded, onComplete, userName, s
               </div>
 
               <div className="space-y-3">
-                {PAYMENT_METHODS.map((method) => (
+                {paymentMethods.map((method) => (
                   <button 
                     key={method.id}
                     onClick={() => {
                       setSelectedPayment(method);
                       setIsPaymentModalOpen(false);
                     }}
-                    className={`w-full flex items-center gap-5 p-5 rounded-3xl border transition-all ${selectedPayment.id === method.id ? 'bg-gray-50 border-primary/20 shadow-sm' : 'bg-white border-gray-100'}`}
+                    className={`w-full flex items-center gap-5 p-5 rounded-3xl border transition-all ${selectedPayment?.id === method.id ? 'bg-gray-50 border-primary/20 shadow-sm' : 'bg-white border-gray-100'}`}
                   >
                     <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shadow-sm ${method.color || 'bg-gray-100'}`}>
                       {method.icon}
@@ -2300,7 +2976,7 @@ const CheckoutFlow = ({ isOpen, onClose, cart, isLoaded, onComplete, userName, s
                         {method.id === 'cash' ? 'COD - Delivery' : method.id === 'card' ? 'Online Gateway' : 'Mobile Service'}
                       </p>
                     </div>
-                    {selectedPayment.id === method.id && (
+                    {selectedPayment?.id === method.id && (
                       <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center shadow-lg shadow-primary/20">
                         <Check size={16} className="text-white" strokeWidth={4} />
                       </div>
@@ -2323,7 +2999,7 @@ const CheckoutFlow = ({ isOpen, onClose, cart, isLoaded, onComplete, userName, s
   );
 };
 
-const CartTab = ({ cart, removeFromCart, updateCartQuantity, onCheckout, isLoaded, userName, selectedCustomer }: { 
+const CartTab = ({ cart, removeFromCart, updateCartQuantity, onCheckout, isLoaded, userName, selectedCustomer, vehicles, paymentMethods }: { 
   cart: CartItem[]; 
   removeFromCart: (id: number) => void; 
   updateCartQuantity: (id: number, delta: number) => void;
@@ -2331,6 +3007,8 @@ const CartTab = ({ cart, removeFromCart, updateCartQuantity, onCheckout, isLoade
   isLoaded: boolean;
   userName: string;
   selectedCustomer?: Customer | null;
+  vehicles: any[];
+  paymentMethods: any[];
 }) => {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const subtotal = cart.reduce((sum, item) => sum + (Number(item.price) || 0) * (item.quantity || 1), 0);
@@ -2533,6 +3211,8 @@ const CartTab = ({ cart, removeFromCart, updateCartQuantity, onCheckout, isLoade
             onComplete={onCheckout}
             userName={userName}
             selectedCustomer={selectedCustomer}
+            vehicles={vehicles}
+            paymentMethods={paymentMethods}
           />
         )}
       </AnimatePresence>
@@ -2769,11 +3449,20 @@ type GroupedOrder = {
   driverName?: string;
 };
 
-const ManagerOrdersTab = ({ orders, onReceivePayment, onDeleteOrderGroup, onDeleteOrderItem, searchQuery }: { orders: Order[], onReceivePayment: (customerName: string, paymentMode: string) => void, onDeleteOrderGroup: (group: GroupedOrder) => void, onDeleteOrderItem: (group: GroupedOrder, productId: string, isWholesale: boolean) => void, searchQuery?: string }) => {
+const ManagerOrdersTab = ({ orders, products, onReceivePayment, onDeleteOrderGroup, onDeleteOrderItem, searchQuery }: { orders: Order[], products: Product[], onReceivePayment: (customerName: string, paymentMode: string) => void, onDeleteOrderGroup: (group: GroupedOrder) => void, onDeleteOrderItem: (group: GroupedOrder, productId: string, isWholesale: boolean) => void, searchQuery?: string }) => {
   const [selectedGroup, setSelectedGroup] = useState<GroupedOrder | null>(null);
-  const [filter, setFilter] = useState<'All' | 'Unpaid' | 'Paid' | 'On Progress' | 'Delivered'>('All');
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const initialFilter = searchParams.get('filter') === 'today' ? 'Today' : 'All';
+  const [filter, setFilter] = useState<'All' | 'Today' | 'Unpaid' | 'Paid' | 'On Progress' | 'Delivered'>(initialFilter as any);
   const [showPaymentDropdown, setShowPaymentDropdown] = useState(false);
   const [groupToDelete, setGroupToDelete] = useState<GroupedOrder | null>(null);
+
+  useEffect(() => {
+    if (searchParams.get('filter') === 'today') {
+      setFilter('Today');
+    }
+  }, [location.search]);
 
   const groupedOrders = useMemo(() => {
     const groups: Record<string, GroupedOrder> = {};
@@ -2838,6 +3527,11 @@ const ManagerOrdersTab = ({ orders, onReceivePayment, onDeleteOrderGroup, onDele
       const isTable = !group.destinationAddress || group.destinationAddress === 'In-Store';
       
       if (filter === 'All') return true;
+      if (filter === 'Today') {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return new Date(group.latestTimestamp) >= today;
+      }
       if (filter === 'Unpaid') return group.paymentStatus === 'Unpaid';
       if (filter === 'Paid') return group.paymentStatus === 'Paid';
       
@@ -2861,14 +3555,14 @@ const ManagerOrdersTab = ({ orders, onReceivePayment, onDeleteOrderGroup, onDele
         description="Track and manage all customer orders. You can view order details, update payment statuses when customers pay, and monitor delivery progress." 
       />
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Store Orders</h2>
+        <h2 className="text-2xl font-bold text-black">Store Orders</h2>
         <div className="bg-[#0077B6]/10 px-3 py-1 rounded-full border border-[#0077B6]/30">
-          <span className="text-[#0077B6] text-xs font-bold">{todayOrdersCount} Orders Today</span>
+          <span className="text-[#0077B6] text-xs font-bold">{filter === 'Today' ? filteredOrders.length : todayOrdersCount} Orders Today</span>
         </div>
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-        {['All', 'Unpaid', 'Paid', 'On Progress', 'Delivered'].map(f => (
+        {['All', 'Today', 'Unpaid', 'Paid', 'On Progress', 'Delivered'].map(f => (
           <button
             key={f}
             onClick={() => setFilter(f as any)}
@@ -2907,8 +3601,18 @@ const ManagerOrdersTab = ({ orders, onReceivePayment, onDeleteOrderGroup, onDele
                     <span className="text-[10px] text-gray-500 bg-gray-800 px-2 py-0.5 rounded-full uppercase tracking-tighter font-mono">
                       {group.orders.length} Order{group.orders.length > 1 ? 's' : ''}
                     </span>
+                    {group.orders[0]?.customerPhone && (
+                      <span className="text-[10px] text-blue-400 font-bold ml-2 flex items-center gap-1">
+                        <Phone size={10} /> {group.orders[0].customerPhone}
+                      </span>
+                    )}
                   </div>
-                  <p className="text-xs text-gray-500">{new Date(group.latestTimestamp).toLocaleString()}</p>
+                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <Clock size={12} />
+                    <span>{new Date(group.latestTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    <span className="mx-1">•</span>
+                    <span>{new Date(group.latestTimestamp).toLocaleDateString()}</span>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {group.paymentStatus === 'Unpaid' && (
@@ -2931,9 +3635,15 @@ const ManagerOrdersTab = ({ orders, onReceivePayment, onDeleteOrderGroup, onDele
                 </div>
               </div>
               <div className="flex justify-between items-end">
-                <div>
+                <div className="flex-1">
                   <p className="text-gray-400 text-xs uppercase tracking-wider mb-0.5">Customer/Table</p>
                   <p className="font-bold text-white">{group.customerName}</p>
+                  {group.destinationAddress && (
+                    <div className="flex items-center gap-1 mt-1 text-[10px] text-gray-500 font-bold uppercase tracking-widest">
+                      <MapPin size={10} />
+                      <span className="truncate max-w-[150px]">{group.destinationAddress}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="text-right">
                   <p className="text-gray-400 text-xs uppercase tracking-wider mb-0.5">Total</p>
@@ -2958,6 +3668,9 @@ const ManagerOrdersTab = ({ orders, onReceivePayment, onDeleteOrderGroup, onDele
                 <div>
                   <h3 className="text-xl font-bold text-white">Orders Details</h3>
                   <p className="text-xs text-gray-500">{selectedGroup.customerName}</p>
+                  {selectedGroup.orders[0]?.customerPhone && (
+                    <p className="text-xs text-blue-400">{selectedGroup.orders[0].customerPhone}</p>
+                  )}
                 </div>
                 <button onClick={() => setSelectedGroup(null)} className="bg-gray-800 p-2 rounded-full text-gray-400 hover:text-white transition-colors">
                   <X size={20} />
@@ -3010,32 +3723,44 @@ const ManagerOrdersTab = ({ orders, onReceivePayment, onDeleteOrderGroup, onDele
                       acc[key].quantity += 1;
                       acc[key].total += item.price;
                       return acc;
-                    }, {})).map((item: any, idx) => (
-                      <div key={idx} className="flex justify-between items-center bg-[#0B172A] p-4 rounded-2xl border border-gray-800/50">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gray-800 rounded-xl flex items-center justify-center text-[#0077B6] font-bold">
-                            {item.quantity}x
+                    }, {})).map((item: any, idx) => {
+                      const product = products.find(p => p.id === item.productId);
+                      const currentStock = product?.stock || 0;
+                      const isLowStock = currentStock < (product?.reorderLevel || 10);
+                      
+                      return (
+                        <div key={idx} className="flex justify-between items-center bg-[#0B172A] p-4 rounded-2xl border border-gray-800/50">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gray-800 rounded-xl flex items-center justify-center text-[#0077B6] font-bold">
+                              {item.quantity}x
+                            </div>
+                            <div>
+                              <p className="font-bold text-white text-sm">{item.name}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="text-[10px] text-gray-500 font-medium uppercase tracking-tighter">
+                                  {item.isWholesale ? 'Wholesale Pcs' : 'Retail Pcs'}
+                                </p>
+                                <span className="text-[10px] text-gray-600">•</span>
+                                <p className={`text-[10px] font-bold uppercase tracking-tighter ${isLowStock ? 'text-red-400' : 'text-green-400'}`}>
+                                  Stock: {currentStock}
+                                </p>
+                              </div>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-bold text-white text-sm">{item.name}</p>
-                            <p className="text-[10px] text-gray-500 font-medium uppercase tracking-tighter">
-                              {item.isWholesale ? 'Wholesale Pcs' : 'Retail Pcs'}
-                            </p>
+                          <div className="flex items-center gap-4">
+                            <p className="font-black text-white">TSh {item.total.toLocaleString()}</p>
+                            {selectedGroup.paymentStatus === 'Unpaid' && (
+                              <button 
+                                onClick={() => onDeleteOrderItem(selectedGroup, item.productId, item.isWholesale)}
+                                className="p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-4">
-                          <p className="font-black text-white">TSh {item.total.toLocaleString()}</p>
-                          {selectedGroup.paymentStatus === 'Unpaid' && (
-                            <button 
-                              onClick={() => onDeleteOrderItem(selectedGroup, item.productId, item.isWholesale)}
-                              className="p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -3211,6 +3936,8 @@ const ManagerDashboard = ({ user, setUser, products, setProducts, sales, expense
     wholesaleMargin: 0,
     image: '',
     discount: '',
+    description: '',
+    alcoholLevel: '',
     barcode: '',
     expiryDate: '',
     batchNumber: '',
@@ -3592,6 +4319,8 @@ const ManagerDashboard = ({ user, setUser, products, setProducts, sales, expense
       wholesaleMargin: 0,
       image: '',
       discount: '',
+      description: '',
+      alcoholLevel: '',
       barcode: '',
       expiryDate: '',
       batchNumber: '',
@@ -3643,6 +4372,8 @@ const ManagerDashboard = ({ user, setUser, products, setProducts, sales, expense
         id: Math.random().toString(36).substr(2, 9),
         companyId: auth.currentUser?.uid || user.uid || '',
         name: formData.name || '',
+        description: formData.description || '',
+        alcoholLevel: formData.alcoholLevel || '',
         category: formData.category || 'Beer > Local Beers',
         retailPrice: Number(formData.retailPrice) || 0,
         wholesalePrice: Number(formData.wholesalePrice) || 0,
@@ -3911,8 +4642,8 @@ const ManagerDashboard = ({ user, setUser, products, setProducts, sales, expense
       </div>
       <div className="flex justify-between items-center px-6 sm:px-0">
         <div>
-          <h1 className="text-2xl font-bold text-white">Store Manager</h1>
-          <p className="text-gray-400">Inventory & Sales Overview</p>
+          <h1 className="text-2xl font-bold text-black">Store Manager</h1>
+          <p className="text-black">Inventory & Sales Overview</p>
         </div>
         <button 
           onClick={handleOpenAdd}
@@ -5147,6 +5878,16 @@ const ManagerDashboard = ({ user, setUser, products, setProducts, sales, expense
                   </div>
 
                   <div className="space-y-2">
+                    <label className="text-xs font-semibold text-gray-400 ml-1">Alcohol Level / ABV</label>
+                    <input
+                      className="w-full bg-[#1E293B] border border-gray-700 rounded-2xl p-4 text-white focus:ring-2 focus:ring-[#0077B6] outline-none transition-all placeholder:text-gray-600"
+                      value={formData.alcoholLevel || ''}
+                      onChange={e => setFormData({...formData, alcoholLevel: e.target.value})}
+                      placeholder="e.g. 5.0% ABV or Non-alcoholic"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
                     <label className="text-xs font-semibold text-gray-400 ml-1">Primary Category</label>
                     <div className="relative">
                       <select 
@@ -5199,6 +5940,17 @@ const ManagerDashboard = ({ user, setUser, products, setProducts, sales, expense
                       value={formData.batchNumber || ''}
                       onChange={e => setFormData({...formData, batchNumber: e.target.value})}
                       placeholder="e.g. B-2024-001"
+                    />
+                  </div>
+
+                  <div className="col-span-2 space-y-2">
+                    <label className="text-xs font-semibold text-gray-400 ml-1">Product Description</label>
+                    <textarea
+                      rows={4}
+                      className="w-full resize-none bg-[#1E293B] border border-gray-700 rounded-2xl p-4 text-white focus:ring-2 focus:ring-[#0077B6] outline-none transition-all placeholder:text-gray-600"
+                      value={formData.description || ''}
+                      onChange={e => setFormData({...formData, description: e.target.value})}
+                      placeholder="Write a premium short description for the customer dialog..."
                     />
                   </div>
 
@@ -5869,11 +6621,14 @@ const Header = ({ user, handleLogout, setIsProfileOpen, searchQuery, setSearchQu
 
 const AppRedirectHandler = ({ user }: { user: any }) => {
   const navigate = useNavigate();
+  const [hasRedirected, setHasRedirected] = useState(false);
+  
   useEffect(() => {
-    if (user?.role === 'manager') {
+    if (user?.role === 'manager' && !hasRedirected) {
       navigate('/manager');
+      setHasRedirected(true);
     }
-  }, [user, navigate]);
+  }, [user, navigate, hasRedirected]);
   return null;
 };
 
@@ -5899,7 +6654,20 @@ export default function App() {
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [settingsForm, setSettingsForm] = useState<Partial<UserProfile>>({});
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
+  const [ads, setAds] = useState<any[]>([]);
+  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
+  const [quickActions, setQuickActions] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [userApiKey, setUserApiKey] = useState(() => localStorage.getItem('google_maps_api_key') || '');
   const [isGuest, setIsGuest] = useState(true);
+
+  const saveApiKey = (key: string) => {
+    localStorage.setItem('google_maps_api_key', key);
+    setUserApiKey(key);
+    setIsConfigOpen(false);
+    window.location.reload();
+  };
 
   useEffect(() => {
     if (showSettingsModal && user) {
@@ -6093,6 +6861,12 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
+  const todayOrdersCount = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return orders.filter(order => new Date(order.timestamp) >= today).length;
+  }, [orders]);
+
   useEffect(() => {
     localStorage.setItem('beverage_cart', JSON.stringify(cart));
   }, [cart]);
@@ -6114,11 +6888,14 @@ export default function App() {
       
       try {
         console.log(`[DATA] Fetching products for ${isManager ? 'manager' : 'client'}...`);
-        const [p, o] = await Promise.all([
-          // For products, let's always fetch all products for now to ensure consistency, 
-          // or at least make sure managers see everything in the store.
+        const [p, o, a, v, pm, qa, cat] = await Promise.all([
           apiService.get('products', {}), 
-          apiService.get('orders', isManager ? { companyId: activeCompanyId } : { customerName: user?.name || '' })
+          apiService.get('orders', isManager ? { companyId: activeCompanyId } : { customerName: user?.name || '' }),
+          apiService.get('ads', {}),
+          apiService.get('vehicles', {}),
+          apiService.get('payment_methods', {}),
+          apiService.get('quick_actions', {}),
+          apiService.get('categories', {})
         ]);
         
         if (Array.isArray(p)) {
@@ -6128,6 +6905,11 @@ export default function App() {
         if (Array.isArray(o)) {
           setOrders(o);
         }
+        if (Array.isArray(a)) setAds(a.sort((x, y) => (x.order || 0) - (y.order || 0)));
+        if (Array.isArray(v)) setVehicles(v);
+        if (Array.isArray(pm)) setPaymentMethods(pm);
+        if (Array.isArray(qa)) setQuickActions(qa.sort((x, y) => (x.order || 0) - (y.order || 0)));
+        if (Array.isArray(cat)) setCategories(cat.sort((x, y) => (x.order || 0) - (y.order || 0)));
 
         if (isManager) {
           const [s, e, c, v, po] = await Promise.all([
@@ -6168,20 +6950,8 @@ export default function App() {
     };
   }, [user]);
 
-  const [userApiKey, setUserApiKey] = useState<string>(localStorage.getItem('GOOGLE_MAPS_API_KEY') || "");
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-
-  // @ts-ignore
-  const envApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-  const activeApiKey = (envApiKey && envApiKey !== "your_api_key_here" && envApiKey !== "AIzaSyANXgw02rPWOY9DWMKtgrclXSTE3k9DoNU") ? envApiKey : userApiKey;
-
-  const saveApiKey = (key: string) => {
-    localStorage.setItem('GOOGLE_MAPS_API_KEY', key);
-    setUserApiKey(key);
-    setIsConfigOpen(false);
-    window.location.reload(); // Reload to ensure Google Maps script re-initializes with new key
-  };
 
   const handleLogout = async () => {
     try {
@@ -6645,7 +7415,7 @@ export default function App() {
 
   return (
     <Router>
-      <MapProvider apiKey={activeApiKey}>
+      <MapProvider>
         {(isLoaded) => (
           <div className="min-h-screen bg-system-bg flex flex-col font-sans selection:bg-primary selection:text-white">
             <AppRedirectHandler user={user} />
@@ -6660,14 +7430,14 @@ export default function App() {
 
             <main className="flex-grow">
               <Routes>
-                <Route path="/" element={<HomeTab user={user} setUser={setUser} products={products} sales={sales} expenses={expenses} orders={orders} setShowSettingsModal={setShowSettingsModal} addToCart={addToCart} />} />
-                <Route path="/products" element={<ProductsTab products={products} isWholesale={isWholesale} setIsWholesale={setIsWholesale} addToCart={addToCart} userRole={user?.role || 'client'} isLoaded={isLoaded} searchQuery={searchQuery} setSearchQuery={setSearchQuery} cartCount={cart.length} />} />
+                <Route path="/" element={<HomeTab user={user} setUser={setUser} products={products} sales={sales} expenses={expenses} orders={orders} ads={ads} quickActions={quickActions} categories={categories} setShowSettingsModal={setShowSettingsModal} addToCart={addToCart} purchaseOrders={purchaseOrders} />} />
+                <Route path="/products" element={<ProductsTab products={products} categories={categories} isWholesale={isWholesale} setIsWholesale={setIsWholesale} addToCart={addToCart} userRole={user?.role || 'client'} isLoaded={isLoaded} searchQuery={searchQuery} setSearchQuery={setSearchQuery} cartCount={cart.length} />} />
                 <Route path="/chat" element={<ChatTab />} />
-                <Route path="/cart" element={<CartTab cart={cart} removeFromCart={removeFromCart} updateCartQuantity={updateCartQuantity} onCheckout={handleCheckout} isLoaded={isLoaded} userName={user?.role === 'manager' && selectedCustomer ? selectedCustomer.name : (user?.name || 'Guest')} selectedCustomer={user?.role === 'manager' ? selectedCustomer : null} />} />
+                <Route path="/cart" element={<CartTab cart={cart} removeFromCart={removeFromCart} updateCartQuantity={updateCartQuantity} onCheckout={handleCheckout} isLoaded={isLoaded} userName={user?.role === 'manager' && selectedCustomer ? selectedCustomer.name : (user?.name || 'Guest')} selectedCustomer={user?.role === 'manager' ? selectedCustomer : null} vehicles={vehicles} paymentMethods={paymentMethods} />} />
                 {user?.role === 'manager' && (
                   <>
                     <Route path="/manager" element={<ManagerDashboard user={user} setUser={setUser} products={products} setProducts={setProducts} sales={sales} expenses={expenses} setExpenses={setExpenses} orders={orders} vendors={vendors} setVendors={setVendors} purchaseOrders={purchaseOrders} setPurchaseOrders={setPurchaseOrders} showSettingsModal={showSettingsModal} setShowSettingsModal={setShowSettingsModal} />} />
-                    <Route path="/orders" element={<ManagerOrdersTab orders={orders} onReceivePayment={handleReceivePayment} onDeleteOrderGroup={handleDeleteOrderGroup} onDeleteOrderItem={handleDeleteOrderItem} searchQuery={searchQuery} />} />
+                    <Route path="/orders" element={<ManagerOrdersTab orders={orders} products={products} onReceivePayment={handleReceivePayment} onDeleteOrderGroup={handleDeleteOrderGroup} onDeleteOrderItem={handleDeleteOrderItem} searchQuery={searchQuery} />} />
                   </>
                 )}
               </Routes>
@@ -6675,7 +7445,7 @@ export default function App() {
 
             <nav className="sticky bottom-0 bg-white border-t border-gray-50 p-6 pb-8 flex justify-around items-center z-40">
               <NavLink to="/" icon={Home} />
-              <NavLink to="/products" icon={Search} />
+              <NavLink to="/orders" icon={Package} />
               <button 
                 onClick={() => {
                   if (user) {
@@ -6690,7 +7460,7 @@ export default function App() {
                   <User size={32} strokeWidth={1.5} />
                 </div>
               </button>
-              <NavLink to="/cart" icon={ShoppingBag} badge={cart.length} />
+              <NavLink to={user?.role === 'manager' ? "/orders?filter=today" : "/cart"} icon={ShoppingBag} badge={user?.role === 'manager' ? todayOrdersCount : cart.length} />
             </nav>
 
             {/* Settings Modal */}

@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS products (
     expiry_date TEXT,
     batch_number TEXT,
     description TEXT,
+    alcohol_level TEXT,
     featured BOOLEAN DEFAULT FALSE,
     batches JSONB DEFAULT '[]'::jsonb
 );

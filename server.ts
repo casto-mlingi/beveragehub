@@ -16,7 +16,7 @@ const { Pool } = pg;
 
 async function startServer() {
   const app = express();
-  const PORT = process.env.PORT || 3070;
+  const PORT = Number(process.env.PORT) || 3070;
 
   // Listen immediately so we can respond to health checks while DB is initializing
   const server = app.listen(PORT, "0.0.0.0", () => {
@@ -79,6 +79,8 @@ async function startServer() {
         await pool.query("ALTER TABLE products ADD COLUMN IF NOT EXISTS discount TEXT");
         await pool.query("ALTER TABLE products ADD COLUMN IF NOT EXISTS expiry_date TEXT");
         await pool.query("ALTER TABLE products ADD COLUMN IF NOT EXISTS batch_number TEXT");
+        await pool.query("ALTER TABLE products ADD COLUMN IF NOT EXISTS description TEXT");
+        await pool.query("ALTER TABLE products ADD COLUMN IF NOT EXISTS alcohol_level TEXT");
         
         // Orders migrations
         await pool.query("ALTER TABLE orders ADD COLUMN IF NOT EXISTS transport_cost NUMERIC DEFAULT 0");
