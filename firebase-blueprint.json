@@ -1,0 +1,121 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["client", "manager"] },
+        "phone": { "type": "string" },
+        "businessName": { "type": "string" },
+        "address": { "type": "string" },
+        "tinNumber": { "type": "string" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Beverage product information",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "retailPrice": { "type": "number" },
+        "wholesalePrice": { "type": "number" },
+        "costPrice": { "type": "number" },
+        "stock": { "type": "number" },
+        "reorderLevel": { "type": "number" },
+        "image": { "type": "string" },
+        "barcode": { "type": "string" }
+      },
+      "required": ["id", "name", "category", "retailPrice", "wholesalePrice", "costPrice", "stock"]
+    },
+    "Sale": {
+      "title": "Sale",
+      "description": "Individual sale record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "productId": { "type": "string" },
+        "productName": { "type": "string" },
+        "quantity": { "type": "number" },
+        "type": { "type": "string", "enum": ["retail", "wholesale"] },
+        "salePrice": { "type": "number" },
+        "costPrice": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "productId", "quantity", "type", "salePrice", "timestamp"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "Business expense record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "description": { "type": "string" },
+        "amount": { "type": "number" },
+        "category": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "paymentMode": { "type": "string" }
+      },
+      "required": ["id", "description", "amount", "category", "date"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer order record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerName": { "type": "string" },
+        "totalCost": { "type": "number" },
+        "status": { "type": "string", "enum": ["Pending", "Processing", "On the way", "Delivered", "Cancelled"] },
+        "paymentStatus": { "type": "string", "enum": ["Unpaid", "Paid", "Failed"] },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "customerName", "totalCost", "status", "paymentStatus", "timestamp"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Customer or Table information",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" }
+      },
+      "required": ["id", "name"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Beverage products"
+    },
+    "/sales/{saleId}": {
+      "schema": "Sale",
+      "description": "Sales records"
+    },
+    "/expenses/{expenseId}": {
+      "schema": "Expense",
+      "description": "Expense records"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Customer orders"
+    },
+    "/customers/{customerId}": {
+      "schema": "Customer",
+      "description": "Customers and Tables"
+    }
+  }
+}
