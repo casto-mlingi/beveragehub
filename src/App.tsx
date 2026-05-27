@@ -401,7 +401,7 @@ const INITIAL_PRODUCTS: Product[] = [
   },
 ];
 
-const CATEGORIES = {
+const CATEGORIES: Record<string, string[]> = {
   'Beer': ['Local Beers', 'Imported Beers', 'Malts n Ciders'],
   'Spirits': ['Whiskey', 'Tequila', 'Cognac', 'Vodka', 'Gin', 'Liqueurs', 'Rum'],
   'Red Wines': ['Premium Red', 'Red Blends', 'Cabernet Sauvignon', 'Pinot Noir & Pinotage', 'Malbec & Merlot', 'Rosé'],
@@ -2564,7 +2564,7 @@ const ProductsTab = ({
   };
 
   const isCategoryDetailView = Boolean(urlCategory && urlCategory !== 'All');
-  const secondaryCategories = (CATEGORIES as any)[category] || [];
+  const secondaryCategories = CATEGORIES[category] || [];
 
   if (isCategoryDetailView) {
     return (
@@ -3108,11 +3108,11 @@ const CheckoutFlow = ({ isOpen, onClose, cart, isLoaded, onComplete, userName, u
   const transportFee = autoTransportFee > 0 ? autoTransportFee : (selectedTruck ? parsePrice(selectedTruck.price) : 0);
   const grandTotal = Math.max(0, productTotal - discountAmount + transportFee);
 
-  if (!isOpen) return null;
-
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSubmitted, setOrderSubmitted] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  if (!isOpen) return null;
 
   const handleNext = async () => {
     if (step === 1) {
@@ -6463,7 +6463,7 @@ const ManagerDashboard = ({ user, setUser, products, setProducts, sales, orders,
                       >
                         {(() => {
                           const primary = formData.category?.split(' > ')[0] || Object.keys(CATEGORIES)[0];
-                          const options = (CATEGORIES as any)[primary];
+                          const options = CATEGORIES[primary];
                           return Array.isArray(options) ? options.map(c => <option key={c} value={c}>{c}</option>) : null;
                         })()}
                       </select>
@@ -7377,7 +7377,7 @@ export default function App() {
   const actualNetProfit = useMemo(() => actualRevenue - actualVat - actualCOGS - totalExpenses - expiredCost, [actualRevenue, actualVat, actualCOGS, totalExpenses, expiredCost]);
 
   const accountBalances = useMemo(() => {
-    const balances = {
+    const balances: Record<string, number> = {
       [ACCOUNT_CATEGORIES.CASH]: 0,
       [ACCOUNT_CATEGORIES.MOBILE]: 0,
       [ACCOUNT_CATEGORIES.CARD]: 0,
@@ -7388,15 +7388,15 @@ export default function App() {
     orders.forEach(o => {
       if (o.paymentStatus === 'Paid' && o.paymentMode) {
         const key = getAccountCategory(o.paymentMode);
-        if (key) (balances as any)[key] += Number(o.totalCost);
+        if (key) balances[key] += Number(o.totalCost);
       } else if (o.paymentStatus === 'Unpaid' && user?.includeReceivableInRevenue) {
-        (balances as any)[ACCOUNT_CATEGORIES.CREDIT] += Number(o.totalCost);
+        balances[ACCOUNT_CATEGORIES.CREDIT] += Number(o.totalCost);
       }
     });
     expenses.forEach(e => {
       if (e.paymentMode) {
         const key = getAccountCategory(e.paymentMode);
-        if (key) (balances as any)[key] -= Number(e.amount);
+        if (key) balances[key] -= Number(e.amount);
       }
     });
     return balances;
