@@ -27,7 +27,6 @@ import autoTable from 'jspdf-autotable';
 
 type Expense = {
   id: string;
-  companyId: string;
   description: string;
   amount: number;
   category: string;
@@ -38,7 +37,6 @@ type Expense = {
 type CartItem = { id: number; productId: string; name: string; price: number; isWholesale: boolean; quantity: number };
 type Customer = {
   id: string;
-  companyId: string;
   name: string;
   address: string;
   lat: number;
@@ -56,7 +54,6 @@ type Batch = {
 
 type Product = { 
   id: string;
-  companyId: string;
   name: string; 
   description?: string;
   alcoholLevel?: string;
@@ -85,7 +82,6 @@ type UserProfile = {
   password?: string;
   name: string; 
   role: 'client' | 'manager';
-  companyId?: string; // For clients to know which company they are visiting
   phone?: string;
   businessName?: string;
   address?: string;
@@ -132,7 +128,6 @@ interface FinancialDetailData {
 
 type Sale = {
   id: string;
-  companyId: string;
   productId: string;
   productName: string;
   quantity: number; // in pieces
@@ -177,7 +172,6 @@ type Category = { id: string; name: string; image?: string; order?: number };
 
 type Vendor = {
   id: string;
-  companyId: string;
   name: string;
   address: string;
   cityState: string;
@@ -208,7 +202,6 @@ type PurchaseOrder = {
 
 type Order = {
   id: string;
-  companyId: string;
   customerName: string;
   customerPhone?: string;
   items: CartItem[];
@@ -232,7 +225,7 @@ type Order = {
 const INITIAL_PRODUCTS: Product[] = [
   { 
     id: '1', 
-    companyId: 'system',
+    
     name: "Kilimanjaro Lager", 
     retailPrice: 2500, 
     wholesalePrice: 22000, 
@@ -255,7 +248,7 @@ const INITIAL_PRODUCTS: Product[] = [
   },
   { 
     id: 'beer-2', 
-    companyId: 'system',
+    
     name: "Serengeti Lite", 
     retailPrice: 2500, 
     wholesalePrice: 21500, 
@@ -275,7 +268,7 @@ const INITIAL_PRODUCTS: Product[] = [
   },
   { 
     id: 'beer-3', 
-    companyId: 'system',
+    
     name: "Safari Lager", 
     retailPrice: 2800, 
     wholesalePrice: 24000, 
@@ -295,7 +288,7 @@ const INITIAL_PRODUCTS: Product[] = [
   },
   { 
     id: 'beer-4', 
-    companyId: 'system',
+    
     name: "Heineken 330ml", 
     retailPrice: 4500, 
     wholesalePrice: 48000, 
@@ -315,7 +308,7 @@ const INITIAL_PRODUCTS: Product[] = [
   },
   { 
     id: 'beer-5', 
-    companyId: 'system',
+    
     name: "Savanna Dry", 
     retailPrice: 5000, 
     wholesalePrice: 55000, 
@@ -335,7 +328,7 @@ const INITIAL_PRODUCTS: Product[] = [
   },
   { 
     id: '2', 
-    companyId: 'system',
+    
     name: "Coca-Cola 500ml", 
     retailPrice: 1200, 
     wholesalePrice: 10000, 
@@ -357,7 +350,7 @@ const INITIAL_PRODUCTS: Product[] = [
   },
   { 
     id: '3', 
-    companyId: 'system',
+    
     name: "Konyagi 250ml", 
     retailPrice: 4000, 
     wholesalePrice: 35000, 
@@ -379,7 +372,7 @@ const INITIAL_PRODUCTS: Product[] = [
   },
   { 
     id: '4', 
-    companyId: 'system',
+    
     name: "Dodoma Wine", 
     retailPrice: 15000, 
     wholesalePrice: 120000, 
@@ -5330,7 +5323,6 @@ const ManagerOrdersTab = ({
                     if (!vendorFormData.name || !user) return;
                     const newVendor: Vendor = {
                       id: Date.now().toString(),
-                      companyId: user.uid,
                       name: vendorFormData.name,
                       phone: vendorFormData.phone || '',
                       address: vendorFormData.address || '',
@@ -5808,7 +5800,6 @@ const ManagerDashboard = ({ user, setUser, products, setProducts, sales, orders,
 
       const product: Product = {
         id: Math.random().toString(36).substr(2, 9),
-        companyId: auth.currentUser?.uid || user?.uid || '',
         name: formData.name || '',
         description: formData.description || '',
         alcoholLevel: formData.alcoholLevel || '',
@@ -7244,13 +7235,6 @@ export default function App() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [lastOrderCount, setLastOrderCount] = useState<number>(-1);
 
-  const activeCompanyId = useMemo(() => {
-    const isManager = user?.role === 'manager';
-    const currentUid = user?.uid;
-    const companyId = isManager ? currentUid : (user?.companyId || '');
-    return companyId || localStorage.getItem('last_managed_company_id') || 'h9cpJbV4yTYw7JynoHvMvaBjpX33';
-  }, [user]);
-
   // Ask for notification permission & monitor new orders
   useEffect(() => {
     if (user?.role === 'manager') {
@@ -7434,7 +7418,6 @@ export default function App() {
     if (!expenseFormData.description || !expenseFormData.amount || !user) return;
     const newExpense: Expense = {
       id: Date.now().toString(),
-      companyId: user.uid,
       description: expenseFormData.description,
       amount: Number(expenseFormData.amount),
       category: expenseFormData.category || 'Other',
@@ -7481,7 +7464,7 @@ export default function App() {
         await apiService.post('products', product);
       }
       const updatedPO: PurchaseOrder = { ...po, status: 'Received' };
-      await apiService.post('purchase_orders', { ...updatedPO, companyId: user.uid });
+      await apiService.post('purchase_orders', updatedPO);
       setProducts(prev => prev.map(p => {
         const updated = updatedProductsList.find(up => up.id === p.id);
         return updated || p;
@@ -7563,7 +7546,6 @@ export default function App() {
     if (!vendorFormData.name || !user) return;
     const newVendor: Vendor = {
       id: Date.now().toString(),
-      companyId: user.uid,
       name: vendorFormData.name || '',
       address: vendorFormData.address || '',
       cityState: vendorFormData.cityState || '',
@@ -7665,34 +7647,33 @@ export default function App() {
     setIsClearingData(true);
     try {
       if (!user?.uid) return;
-      const companyId = user.uid;
 
       // Clear Products
-      const productsToClear = await apiService.get('products', { companyId });
+      const productsToClear = await apiService.get('products');
       for (const d of productsToClear) await apiService.delete('products', d.id);
 
       // Clear Sales
-      const salesToClear = await apiService.get('sales', { companyId });
+      const salesToClear = await apiService.get('sales');
       for (const d of salesToClear) await apiService.delete('sales', d.id);
 
       // Clear Expenses
-      const expensesToClear = await apiService.get('expenses', { companyId });
+      const expensesToClear = await apiService.get('expenses');
       for (const d of expensesToClear) await apiService.delete('expenses', d.id);
 
       // Clear Orders
-      const ordersToClear = await apiService.get('orders', { companyId });
+      const ordersToClear = await apiService.get('orders');
       for (const d of ordersToClear) await apiService.delete('orders', d.id);
 
       // Clear Customers
-      const customersToClear = await apiService.get('customers', { companyId });
+      const customersToClear = await apiService.get('customers');
       for (const d of customersToClear) await apiService.delete('customers', d.id);
 
       // Clear Vendors
-      const vendorsToClear = await apiService.get('vendors', { companyId });
+      const vendorsToClear = await apiService.get('vendors');
       for (const d of vendorsToClear) await apiService.delete('vendors', d.id);
 
       // Clear Purchase Orders
-      const poToClear = await apiService.get('purchase_orders', { companyId });
+      const poToClear = await apiService.get('purchase_orders');
       for (const d of poToClear) await apiService.delete('purchase_orders', d.id);
 
       alert('All store data has been cleared successfully.');
@@ -7809,10 +7790,8 @@ export default function App() {
       }
       
       if (isManager && currentUid) {
-        localStorage.setItem('last_managed_company_id', currentUid);
+        // No company ID logic needed
       }
-      
-      const effectiveCompanyId = activeCompanyId || 'system';
       
       // Abort previous request if any
       if (abortControllerRef.current) {
@@ -7823,10 +7802,9 @@ export default function App() {
       try {
         isFetchingRef.current = true;
         lastFetchTimeRef.current = now;
-        console.log(`[DATA] Fetching bulk data for ${isManager ? 'manager' : 'client'} (Company: ${effectiveCompanyId})...`);
+        console.log(`[DATA] Fetching bulk data for ${isManager ? 'manager' : 'client'}...`);
         
         const bulkData = await apiService.get('bulk-data', {
-          companyId: effectiveCompanyId,
           customerName: user?.name || '',
           role: user?.role || 'client'
         }, abortControllerRef.current?.signal);
@@ -7970,7 +7948,7 @@ export default function App() {
       window.removeEventListener('visibilitychange', handleVisibilityChange);
       if (eventSource) eventSource.close();
     };
-  }, [user, activeCompanyId]);
+  }, [user]);
 
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -8027,7 +8005,6 @@ export default function App() {
           
           newSales.push({
             id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-            companyId: auth.currentUser?.uid || user?.uid || '',
             productId: product.id,
             productName: product.name,
             quantity: toDeduct,
@@ -8043,7 +8020,6 @@ export default function App() {
 
       const newOrder: Order = {
         id: orderId,
-        companyId: auth.currentUser?.uid || user?.uid || '',
         customerName: customer.name,
         items: [{ ...item, id: Date.now() }],
         subtotal: item.price,
@@ -8089,7 +8065,6 @@ export default function App() {
     
     // Allow guest/client checkouts even if not Firebase-authenticated
     const effectiveUid = auth.currentUser?.uid || user?.uid || `guest_${Date.now()}`;
-    const companyId = activeCompanyId || products.find(p => p.id === cart[0].productId)?.companyId || effectiveUid;
 
     const orderId = 'ORD-' + Math.random().toString(36).substr(2, 9).toUpperCase();
     const newSales: Sale[] = [];
@@ -8114,7 +8089,6 @@ export default function App() {
               
               newSales.push({
                 id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-                companyId: companyId,
                 productId: product.id,
                 productName: product.name,
                 quantity: toDeduct,
@@ -8140,7 +8114,6 @@ export default function App() {
 
     const newOrder: Order = {
       id: orderId,
-      companyId: companyId,
       customerName: orderDetails.customerName,
       customerPhone: orderDetails.customerPhone,
       items: [...cart],
@@ -8240,7 +8213,7 @@ export default function App() {
       
       for (const order of ordersToDelete) {
         // Find sales for this order
-        const sales = await apiService.get('sales', { companyId: auth.currentUser?.uid || user?.uid || '' });
+        const sales = await apiService.get('sales');
         const orderTime = new Date(order.timestamp).getTime();
         
         const salesToDelete = sales.filter((sale: Sale) => {
@@ -8345,7 +8318,6 @@ export default function App() {
       
       // Find ONE sale record to delete
       const sales = await apiService.get('sales', { 
-        companyId: auth.currentUser?.uid || user?.uid || '',
         productId: productId
       });
       

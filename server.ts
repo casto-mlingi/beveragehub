@@ -197,14 +197,7 @@ async function startServer() {
 
   // Bulk Data Endpoint to reduce concurrent requests
   app.get("/api/bulk-data", async (req, res) => {
-    let { companyId, customerName, role } = req.query;
-    
-    // Fallback to 'system' if companyId is missing or falsy
-    if (!companyId) {
-      companyId = 'system';
-      console.log("[BULK] No companyId provided, falling back to 'system'");
-    }
-    
+    const { role, customerName } = req.query;
     const isManager = role === 'manager';
     
     try {
@@ -248,7 +241,7 @@ async function startServer() {
       await Promise.all([...basicPromises, managersPromise]);
       
       // Conditional data
-      if (isManager && companyId) {
+      if (isManager) {
         const managerEntities = [
           { key: 'orders', table: 'orders' },
           { key: 'sales', table: 'sales' },
@@ -260,7 +253,7 @@ async function startServer() {
         
         await Promise.all(managerEntities.map(async (entity) => {
           try {
-            const queryRes = await pool.query(`SELECT * FROM ${entity.table} WHERE company_id = $1`, [companyId]);
+            const queryRes = await pool.query(`SELECT * FROM ${entity.table}`);
             results[entity.key] = mapKeys(queryRes.rows);
           } catch (e) {
             console.error(`[BULK] Error fetching manager entity ${entity.key}:`, e);
@@ -358,7 +351,6 @@ async function startServer() {
     
     // List
     app.get(`/api/${entity}`, async (req, res) => {
-      const companyId = req.query.companyId;
       if (entity === 'users') {
         const uid = req.query.uid;
         const phone = req.query.phone;
@@ -368,18 +360,11 @@ async function startServer() {
       }
       
       const queryParams = { ...req.query };
-      delete queryParams.companyId;
       
       let sql = `SELECT * FROM ${table}`;
       const values: string[] = [];
       let whereAdded = false;
 
-      if (companyId) {
-        sql += ` WHERE company_id = $1`;
-        values.push(companyId as string);
-        whereAdded = true;
-      }
-      
       Object.entries(queryParams).forEach(([key, val], index) => {
         const dbKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
         if (!whereAdded && index === 0) {
