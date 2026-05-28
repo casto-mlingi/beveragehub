@@ -67,10 +67,14 @@ async function seed() {
 
     // Seed Categories
     const categories = [
-      { id: 'Beer', name: 'BEER', image: 'https://images.unsplash.com/photo-1535958636474-b021ee887b13?w=400&h=500&fit=crop', order: 0 },
-      { id: 'Whiskey', name: 'WHISKEY', image: 'https://images.unsplash.com/photo-1527281400828-ac737aefa5ad?w=400&h=500&fit=crop', order: 1 },
-      { id: 'Gin', name: 'GIN', image: 'https://images.unsplash.com/photo-1551538827-9c037cb4f32a?w=400&h=500&fit=crop', order: 2 },
-      { id: 'Soda', name: 'SODA', image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400&h=500&fit=crop', order: 3 },
+      { id: 'Beer', name: 'BEERS', image: 'https://images.unsplash.com/photo-1608270586620-248524c67de9?w=600&q=85&auto=format&fit=crop', order: 0 },
+      { id: 'Spirits', name: 'SPIRITS', image: 'https://images.unsplash.com/photo-1569529465841-dfecdab7503b?w=600&q=85&auto=format&fit=crop', order: 1 },
+      { id: 'Red Wines', name: 'RED WINES', image: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&q=85&auto=format&fit=crop', order: 2 },
+      { id: 'White Wines', name: 'WHITE WINES', image: 'https://images.unsplash.com/photo-1474722883778-792e7990302f?w=600&q=85&auto=format&fit=crop', order: 3 },
+      { id: 'Bubbles', name: 'BUBBLES', image: 'https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?w=600&q=85&auto=format&fit=crop', order: 4 },
+      { id: 'Soft Drinks', name: 'SOFT DRINKS', image: 'https://images.unsplash.com/photo-1527960471264-932f39eb5846?w=600&q=85&auto=format&fit=crop', order: 5 },
+      { id: 'Extras', name: 'EXTRAS', image: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?w=600&q=85&auto=format&fit=crop', order: 6 },
+      { id: 'Hampers & Gifts', name: 'HAMPERS & GIFTS', image: 'https://images.unsplash.com/photo-1607344645866-009c320b63e0?w=600&q=85&auto=format&fit=crop', order: 7 },
     ];
     for (const cat of categories) {
       await pool.query(

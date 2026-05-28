@@ -345,7 +345,7 @@ const INITIAL_PRODUCTS: Product[] = [
     wholesaleMargin: 4.17, 
     wholesaleUnitSize: 12, 
     image: "https://picsum.photos/seed/soda/300/300", 
-    category: "Soft Drink", 
+    category: "Soft Drinks", 
     stock: 500, 
     discount: "5% OFF", 
     expiryDate: "2026-12-20", 
@@ -367,7 +367,7 @@ const INITIAL_PRODUCTS: Product[] = [
     wholesaleMargin: -2.78, 
     wholesaleUnitSize: 12, 
     image: "https://picsum.photos/seed/liquor/300/300", 
-    category: "Liquor", 
+    category: "Spirits", 
     stock: 85, 
     discount: "10% OFF", 
     expiryDate: "2027-01-10", 
@@ -389,7 +389,7 @@ const INITIAL_PRODUCTS: Product[] = [
     wholesaleMargin: 0, 
     wholesaleUnitSize: 12, 
     image: "https://picsum.photos/seed/wine/300/300", 
-    category: "Wine", 
+    category: "Red Wines", 
     stock: 40, 
     discount: "20% OFF", 
     expiryDate: "2026-05-01", 
@@ -9269,7 +9269,7 @@ export default function App() {
               )}
             </AnimatePresence>
 
-            <nav className="sticky bottom-0 bg-white border-t border-gray-50 p-6 pb-8 flex justify-around items-center z-40">
+            <nav className="sticky bottom-0 bg-white border-t border-gray-50 h-[60px] flex justify-around items-center z-40">
               <NavLink to="/" icon={Home} />
               <NavLink to={user?.role === 'manager' ? "/orders" : "/products"} icon={Store} badge={user?.role === 'manager' ? todayOrdersCount : 0} />
               <button 
