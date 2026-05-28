@@ -130,6 +130,10 @@ async function startServer() {
         // Add featured boolean flag
         await pool.query("ALTER TABLE products ADD COLUMN IF NOT EXISTS featured BOOLEAN DEFAULT FALSE");
 
+        // User location migrations
+        await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS lat NUMERIC");
+        await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS lng NUMERIC");
+
       } catch (e) {
         console.error("Migration error:", e);
       }

@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS users (
     tin_number TEXT,
     city_state TEXT,
     postal_code TEXT,
+    lat NUMERIC,
+    lng NUMERIC,
     is_vat_applicable BOOLEAN DEFAULT FALSE,
     vat_rate NUMERIC DEFAULT 18,
     include_receivable_in_revenue BOOLEAN DEFAULT FALSE
