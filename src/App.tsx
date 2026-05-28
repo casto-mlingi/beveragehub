@@ -241,7 +241,7 @@ const INITIAL_PRODUCTS: Product[] = [
     margin: 38.88, 
     wholesaleMargin: 1.85, 
     wholesaleUnitSize: 12, 
-    image: "https://picsum.photos/seed/kili/300/300", 
+    image: "https://images.unsplash.com/photo-1535958636474-b021ee887b13?w=300&h=300&fit=crop", 
     category: "Beer > Local Beers", 
     stock: 150, 
     discount: "15% OFF", 
@@ -264,7 +264,7 @@ const INITIAL_PRODUCTS: Product[] = [
     margin: 42.85, 
     wholesaleMargin: 2.38, 
     wholesaleUnitSize: 12, 
-    image: "https://picsum.photos/seed/serengeti/300/300", 
+    image: "https://images.unsplash.com/photo-1535958636474-b021ee887b13?w=300&h=300&fit=crop", 
     category: "Beer > Local Beers", 
     stock: 200, 
     discount: "", 
@@ -284,7 +284,7 @@ const INITIAL_PRODUCTS: Product[] = [
     margin: 40, 
     wholesaleMargin: 0, 
     wholesaleUnitSize: 12, 
-    image: "https://picsum.photos/seed/safari/300/300", 
+    image: "https://images.unsplash.com/photo-1535958636474-b021ee887b13?w=300&h=300&fit=crop", 
     category: "Beer > Local Beers", 
     stock: 120, 
     discount: "Buy 10 Get 1", 
@@ -304,7 +304,7 @@ const INITIAL_PRODUCTS: Product[] = [
     margin: 28.57, 
     wholesaleMargin: 14.28, 
     wholesaleUnitSize: 12, 
-    image: "https://picsum.photos/seed/heineken/300/300", 
+    image: "https://images.unsplash.com/photo-1535958636474-b021ee887b13?w=300&h=300&fit=crop", 
     category: "Beer > Imported Beers", 
     stock: 80, 
     discount: "", 
@@ -324,7 +324,7 @@ const INITIAL_PRODUCTS: Product[] = [
     margin: 31.57, 
     wholesaleMargin: 20.61, 
     wholesaleUnitSize: 12, 
-    image: "https://picsum.photos/seed/savanna/300/300", 
+    image: "https://images.unsplash.com/photo-1535958636474-b021ee887b13?w=300&h=300&fit=crop", 
     category: "Beer > Malts n Ciders", 
     stock: 65, 
     discount: "LIMITED", 
@@ -344,7 +344,7 @@ const INITIAL_PRODUCTS: Product[] = [
     margin: 50, 
     wholesaleMargin: 4.17, 
     wholesaleUnitSize: 12, 
-    image: "https://picsum.photos/seed/soda/300/300", 
+    image: "https://images.unsplash.com/photo-1527960471264-932f39eb5846?w=300&h=300&fit=crop", 
     category: "Soft Drinks", 
     stock: 500, 
     discount: "5% OFF", 
@@ -366,7 +366,7 @@ const INITIAL_PRODUCTS: Product[] = [
     margin: 33.33, 
     wholesaleMargin: -2.78, 
     wholesaleUnitSize: 12, 
-    image: "https://picsum.photos/seed/liquor/300/300", 
+    image: "https://images.unsplash.com/photo-1569529465841-dfecdab7503b?w=300&h=300&fit=crop", 
     category: "Spirits", 
     stock: 85, 
     discount: "10% OFF", 
@@ -388,7 +388,7 @@ const INITIAL_PRODUCTS: Product[] = [
     margin: 50, 
     wholesaleMargin: 0, 
     wholesaleUnitSize: 12, 
-    image: "https://picsum.photos/seed/wine/300/300", 
+    image: "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=300&h=300&fit=crop", 
     category: "Red Wines", 
     stock: 40, 
     discount: "20% OFF", 
@@ -1007,7 +1007,7 @@ const CLIENT_CATEGORIES = [
   { 
     id: 'Beer', 
     name: 'BEERS', 
-    image: 'https://images.unsplash.com/photo-1608270586620-248524c67de9?w=600&q=85&auto=format&fit=crop'
+    image: 'https://images.unsplash.com/photo-1535958636474-b021ee887b13?w=600&q=85&auto=format&fit=crop'
   },
   { 
     id: 'Spirits', 
@@ -1597,6 +1597,54 @@ const ManagerStats = ({
   );
 };
 
+// Separate component for category sections to keep HomeTab clean and avoid hook issues
+const CategorySections = ({ 
+  categories, 
+  products, 
+  onAddToCart, 
+  onOpenProduct 
+}: { 
+  categories: Category[]; 
+  products: Product[]; 
+  onAddToCart: (item: any) => void;
+  onOpenProduct: (product: Product) => void;
+}) => {
+  const navigate = useNavigate();
+
+  return (
+    <>
+      {categories.map(cat => {
+        const categoryProducts = products.filter(p => p.category === cat.id || (p.category && p.category.startsWith(`${cat.id} > `)));
+        if (categoryProducts.length === 0) return null;
+
+        return (
+          <div key={cat.id} className="bg-white">
+            <div className="flex items-center justify-between px-6 pb-4 pt-6">
+              <h3 className="text-[24px] font-[900] text-black tracking-tight">{cat.name}</h3>
+              <span 
+                onClick={() => navigate(`/products?category=${cat.id}`)}
+                className="text-[17px] text-[#111111] font-bold cursor-pointer hover:opacity-70"
+              >
+                View All
+              </span>
+            </div>
+            <div className="flex overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] w-full snap-x snap-mandatory border-t border-gray-100">
+              {categoryProducts.slice(0, 10).map(p => (
+                <HorizontalProductCard
+                  key={p.id}
+                  product={p}
+                  onAddToCart={onAddToCart}
+                  onOpenProduct={onOpenProduct}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </>
+  );
+};
+
 const HomeTab = ({ 
   user, 
   setUser, 
@@ -1712,34 +1760,12 @@ const HomeTab = ({
             </div>
           </div>
 
-          {categories.map(cat => {
-            const categoryProducts = products.filter(p => p.category === cat.id || (p.category && p.category.startsWith(`${cat.id} > `)));
-            if (categoryProducts.length === 0) return null;
-
-            return (
-              <div key={cat.id} className="bg-white">
-                <div className="flex items-center justify-between px-6 pb-4 pt-6">
-                  <h3 className="text-[24px] font-[900] text-black tracking-tight">{cat.name}</h3>
-                  <span 
-                    onClick={() => navigate(`/products?category=${cat.id}`)}
-                    className="text-[17px] text-[#111111] font-bold cursor-pointer hover:opacity-70"
-                  >
-                    View All
-                  </span>
-                </div>
-                <div className="flex overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] w-full snap-x snap-mandatory border-t border-gray-100">
-                  {categoryProducts.slice(0, 10).map(p => (
-                    <HorizontalProductCard
-                      key={p.id}
-                      product={p}
-                      onAddToCart={handleProductAdd}
-                      onOpenProduct={setSelectedProduct}
-                    />
-                  ))}
-                </div>
-              </div>
-            );
-          })}
+          <CategorySections 
+            categories={categories} 
+            products={products} 
+            onAddToCart={handleProductAdd} 
+            onOpenProduct={setSelectedProduct} 
+          />
 
           {(() => {
             const matchedProductIds = new Set();
@@ -8422,6 +8448,146 @@ export default function App() {
     );
   }
 
+  return (
+    <AppLayout 
+      user={user}
+      setUser={setUser}
+      isGuest={isGuest}
+      setIsGuest={setIsGuest}
+      authError={authError}
+      handleLogout={handleLogout}
+      setIsProfileOpen={setIsProfileOpen}
+      searchQuery={searchQuery}
+      setSearchQuery={setSearchQuery}
+      cart={cart}
+      setCart={setCart}
+      addToCart={addToCart}
+      products={products}
+      setProducts={setProducts}
+      sales={sales}
+      setSales={setSales}
+      orders={orders}
+      setOrders={setOrders}
+      expenses={expenses}
+      setExpenses={setExpenses}
+      vendors={vendors}
+      setVendors={setVendors}
+      purchaseOrders={purchaseOrders}
+      setPurchaseOrders={setPurchaseOrders}
+      categories={categories}
+      setCategories={setCategories}
+      ads={ads}
+      setAds={setAds}
+      vehicles={vehicles}
+      setVehicles={setVehicles}
+      paymentMethods={paymentMethods}
+      setPaymentMethods={setPaymentMethods}
+      quickActions={quickActions}
+      setQuickActions={setQuickActions}
+      fetchErrorCount={fetchErrorCount}
+      isWholesale={isWholesale}
+      setIsWholesale={setIsWholesale}
+      showSettingsModal={showSettingsModal}
+      setShowSettingsModal={setShowSettingsModal}
+      showFinancialDetail={showFinancialDetail}
+      setShowFinancialDetail={setShowFinancialDetail}
+      stockValue={stockValue}
+      totalExpenses={totalExpenses}
+      actualRevenue={actualRevenue}
+      actualCOGS={actualCOGS}
+      expiredCost={expiredCost}
+      actualVat={actualVat}
+      actualNetProfit={actualNetProfit}
+      accountBalances={accountBalances}
+      totalCashBank={totalCashBank}
+      todayOrdersCount={todayOrdersCount}
+      reorderProductsCount={reorderProductsCount}
+      autoTransportFee={autoTransportFee}
+      nearestStore={nearestStore}
+      promoCodes={promoCodes}
+      showExpenseModal={showExpenseModal}
+      setShowExpenseModal={setShowExpenseModal}
+      showPurchaseOrderModal={showPurchaseOrderModal}
+      setShowPurchaseOrderModal={setShowPurchaseOrderModal}
+      showExpensesDashboardModal={showExpensesDashboardModal}
+      setShowExpensesDashboardModal={setShowExpensesDashboardModal}
+      showAddVendorModal={showAddVendorModal}
+      setShowAddVendorModal={setShowAddVendorModal}
+      showReceiveInventoryModal={showReceiveInventoryModal}
+      setShowReceiveInventoryModal={setShowReceiveInventoryModal}
+      poDraftItems={poDraftItems}
+      setPoDraftItems={setPoDraftItems}
+      selectedPOId={selectedPOId}
+      setSelectedPOId={setSelectedPOId}
+      receivedItems={receivedItems}
+      setReceivedItems={setReceivedItems}
+      selectedVendorId={selectedVendorId}
+      setSelectedVendorId={setSelectedVendorId}
+      expenseFormData={expenseFormData}
+      setExpenseFormData={setExpenseFormData}
+      vendorFormData={vendorFormData}
+      setVendorFormData={setVendorFormData}
+      handleSaveExpense={handleSaveExpense}
+      handleReceivePO={handleReceivePO}
+      exportToPDF={exportToPDF}
+      exportPurchaseOrderPDF={exportPurchaseOrderPDF}
+      expensePage={expensePage}
+      setExpensePage={setExpensePage}
+      expenseCategoryFilter={expenseCategoryFilter}
+      setExpenseCategoryFilter={setExpenseCategoryFilter}
+      expenseSearch={expenseSearch}
+      setExpenseSearch={setExpenseSearch}
+      startDate={startDate}
+      setStartDate={setStartDate}
+      endDate={endDate}
+      setEndDate={setEndDate}
+      handleProcessOrder={handleProcessOrder}
+      handleDeleteOrderGroup={handleDeleteOrderGroup}
+      handleDeleteOrderItem={handleDeleteOrderItem}
+      handleUpdateOrderGroupStatus={handleUpdateOrderGroupStatus}
+      handleCheckout={handleCheckout}
+      handleSaveSettings={handleSaveSettings}
+      settingsForm={settingsForm}
+      setSettingsForm={setSettingsForm}
+      isSavingSettings={isSavingSettings}
+      isClearingData={isClearingData}
+      handleClearAllData={handleClearAllData}
+      isConfigOpen={isConfigOpen}
+      setIsConfigOpen={setIsConfigOpen}
+      userApiKey={userApiKey}
+      saveApiKey={saveApiKey}
+      isProfileOpen={isProfileOpen}
+      removeFromCart={removeFromCart}
+      updateCartQuantity={updateCartQuantity}
+      handleSaveVendor={handleSaveVendor}
+      selectedCustomer={selectedCustomer}
+    />
+  );
+}
+
+const AppLayout = ({ 
+  user, setUser, isGuest, setIsGuest, authError, handleLogout, setIsProfileOpen, 
+  searchQuery, setSearchQuery, cart, setCart, addToCart, products, setProducts, 
+  sales, setSales, orders, setOrders, expenses, setExpenses, vendors, setVendors, 
+  purchaseOrders, setPurchaseOrders, categories, setCategories, ads, setAds, 
+  vehicles, setVehicles, paymentMethods, setPaymentMethods, quickActions, setQuickActions, 
+  fetchErrorCount, isWholesale, setIsWholesale, showSettingsModal, setShowSettingsModal, 
+  showFinancialDetail, setShowFinancialDetail, stockValue, totalExpenses, actualRevenue, 
+  actualCOGS, expiredCost, actualVat, actualNetProfit, accountBalances, totalCashBank, 
+  todayOrdersCount, reorderProductsCount, autoTransportFee, nearestStore, promoCodes, 
+  showExpenseModal, setShowExpenseModal, showPurchaseOrderModal, setShowPurchaseOrderModal, 
+  showExpensesDashboardModal, setShowExpensesDashboardModal, showAddVendorModal, setShowAddVendorModal, 
+  showReceiveInventoryModal, setShowReceiveInventoryModal, poDraftItems, setPoDraftItems, 
+  selectedPOId, setSelectedPOId, receivedItems, setReceivedItems, selectedVendorId, setSelectedVendorId, 
+  expenseFormData, setExpenseFormData, vendorFormData, setVendorFormData, handleSaveExpense, 
+  handleReceivePO, exportToPDF, exportPurchaseOrderPDF, expensePage, setExpensePage, 
+  expenseCategoryFilter, setExpenseCategoryFilter, expenseSearch, setExpenseSearch, 
+  startDate, setStartDate, endDate, setEndDate, handleProcessOrder, handleDeleteOrderGroup, 
+  handleDeleteOrderItem, handleUpdateOrderGroupStatus, handleCheckout, handleSaveSettings, 
+  settingsForm, setSettingsForm, isSavingSettings, isClearingData, handleClearAllData, 
+  isConfigOpen, setIsConfigOpen, userApiKey, saveApiKey, isProfileOpen,
+  removeFromCart, updateCartQuantity, handleSaveVendor, selectedCustomer
+}: any) => {
   if (!user && !isGuest) {
     return <AuthScreen externalError={authError} setUser={setUser} onGuest={() => setIsGuest(true)} />;
   }
@@ -8654,7 +8820,7 @@ export default function App() {
                             type="text"
                             placeholder="e.g. Shop Rent"
                             value={expenseFormData.description}
-                            onChange={e => setExpenseFormData(prev => ({ ...prev, description: e.target.value }))}
+                            onChange={e => setExpenseFormData((prev: any) => ({ ...prev, description: e.target.value }))}
                             className="w-full bg-[#0F172A] border border-gray-800 rounded-xl px-4 py-3 text-white focus:border-[#0077B6] outline-none"
                           />
                         </div>
@@ -8664,7 +8830,7 @@ export default function App() {
                             <input
                               type="number"
                               value={expenseFormData.amount || ''}
-                              onChange={e => setExpenseFormData(prev => ({ ...prev, amount: Number(e.target.value) }))}
+                              onChange={e => setExpenseFormData((prev: any) => ({ ...prev, amount: Number(e.target.value) }))}
                               className="w-full bg-[#0F172A] border border-gray-800 rounded-xl px-4 py-3 text-white focus:border-[#0077B6] outline-none"
                             />
                           </div>
@@ -8672,7 +8838,7 @@ export default function App() {
                             <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Category</label>
                             <select
                               value={expenseFormData.category}
-                              onChange={e => setExpenseFormData(prev => ({ ...prev, category: e.target.value }))}
+                              onChange={e => setExpenseFormData((prev: any) => ({ ...prev, category: e.target.value }))}
                               className="w-full bg-[#0F172A] border border-gray-800 rounded-xl px-4 py-3 text-white focus:border-[#0077B6] outline-none"
                             >
                               {EXPENSE_CATEGORIES.map(cat => (
@@ -8687,7 +8853,7 @@ export default function App() {
                             <input
                               type="date"
                               value={expenseFormData.date}
-                              onChange={e => setExpenseFormData(prev => ({ ...prev, date: e.target.value }))}
+                              onChange={e => setExpenseFormData((prev: any) => ({ ...prev, date: e.target.value }))}
                               className="w-full bg-[#0F172A] border border-gray-800 rounded-xl px-4 py-3 text-white focus:border-[#0077B6] outline-none"
                             />
                           </div>
@@ -8695,7 +8861,7 @@ export default function App() {
                             <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Payment Mode</label>
                             <select
                               value={expenseFormData.paymentMode}
-                              onChange={e => setExpenseFormData(prev => ({ ...prev, paymentMode: e.target.value }))}
+                              onChange={e => setExpenseFormData((prev: any) => ({ ...prev, paymentMode: e.target.value }))}
                               className="w-full bg-[#0F172A] border border-gray-800 rounded-xl px-4 py-3 text-white focus:border-[#0077B6] outline-none"
                             >
                               {PAYMENT_METHODS.map(pm => (
@@ -8774,25 +8940,25 @@ export default function App() {
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         <div className="bg-[#0F172A] p-4 rounded-2xl border border-gray-800">
                           <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Total OPEX</p>
-                          <p className="text-xl font-black text-white">TSh {expenses.reduce((sum, e) => sum + e.amount, 0).toLocaleString()}</p>
+                          <p className="text-xl font-black text-white">TSh {expenses.reduce((sum: number, e: any) => sum + e.amount, 0).toLocaleString()}</p>
                         </div>
                         <div className="bg-[#0F172A] p-4 rounded-2xl border border-gray-800">
                           <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">This Month</p>
                           <p className="text-xl font-black text-white">TSh {
-                            expenses.filter(e => new Date(e.date).getMonth() === new Date().getMonth()).reduce((sum, e) => sum + e.amount, 0).toLocaleString()
+                            expenses.filter((e: any) => new Date(e.date).getMonth() === new Date().getMonth()).reduce((sum: number, e: any) => sum + e.amount, 0).toLocaleString()
                           }</p>
                         </div>
                         <div className="bg-[#0F172A] p-4 rounded-2xl border border-gray-800">
                           <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Avg/Day</p>
-                          <p className="text-xl font-black text-white">TSh {Math.round(expenses.reduce((sum, e) => sum + e.amount, 0) / (expenses.length || 1)).toLocaleString()}</p>
+                          <p className="text-xl font-black text-white">TSh {Math.round(expenses.reduce((sum: number, e: any) => sum + e.amount, 0) / (expenses.length || 1)).toLocaleString()}</p>
                         </div>
                         <div className="bg-[#0F172A] p-4 rounded-2xl border border-gray-800">
                           <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Top Category</p>
                           <p className="text-xl font-black text-white">{
-                            Object.entries(expenses.reduce((acc, e) => {
+                            Object.entries(expenses.reduce((acc: any, e: any) => {
                               acc[e.category] = (acc[e.category] || 0) + e.amount;
                               return acc;
-                            }, {} as Record<string, number>)).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A'
+                            }, {} as Record<string, number>)).sort((a: any, b: any) => b[1] - a[1])[0]?.[0] || 'N/A'
                           }</p>
                         </div>
                       </div>
@@ -8838,7 +9004,7 @@ export default function App() {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-800">
-                            {[...expenses].reverse().filter(e => {
+                            {[...expenses].reverse().filter((e: any) => {
                               if (expenseCategoryFilter !== 'All' && e.category !== expenseCategoryFilter) return false;
                               if (expenseSearch) {
                                 const search = expenseSearch.toLowerCase();
@@ -8852,7 +9018,7 @@ export default function App() {
                                 <td colSpan={4} className="px-4 py-8 text-center text-gray-500">No expenses found</td>
                               </tr>
                             ) : (
-                              [...expenses].reverse().filter(e => {
+                              [...expenses].reverse().filter((e: any) => {
                                 if (expenseCategoryFilter !== 'All' && e.category !== expenseCategoryFilter) return false;
                                 if (expenseSearch) {
                                   const search = expenseSearch.toLowerCase();
@@ -8861,7 +9027,7 @@ export default function App() {
                                 if (startDate && e.date < startDate) return false;
                                 if (endDate && e.date > endDate) return false;
                                 return true;
-                              }).slice(expensePage * 10, (expensePage + 1) * 10).map(expense => (
+                              }).slice(expensePage * 10, (expensePage + 1) * 10).map((expense: any) => (
                                 <tr key={expense.id} className="hover:bg-white/5 transition-all">
                                   <td className="px-4 py-3 text-xs text-gray-300">{new Date(expense.date).toLocaleDateString()}</td>
                                   <td className="px-4 py-3 text-xs font-medium text-white">{expense.description}</td>
@@ -8876,7 +9042,7 @@ export default function App() {
                             )}
                           </tbody>
                         </table>
-                        {[...expenses].reverse().filter(e => {
+                        {[...expenses].reverse().filter((e: any) => {
                           if (expenseCategoryFilter !== 'All' && e.category !== expenseCategoryFilter) return false;
                           if (expenseSearch) {
                             const search = expenseSearch.toLowerCase();
@@ -8889,12 +9055,12 @@ export default function App() {
                           <div className="p-4 border-t border-gray-800 flex justify-between items-center">
                             <button
                               disabled={expensePage === 0}
-                              onClick={() => setExpensePage(p => p - 1)}
+                              onClick={() => setExpensePage((p: number) => p - 1)}
                               className="p-2 hover:bg-white/10 rounded-lg text-gray-400 disabled:opacity-50"
                             >
                               <ChevronLeft size={20} />
                             </button>
-                            <span className="text-xs text-gray-500">Page {expensePage + 1} of {Math.ceil([...expenses].reverse().filter(e => {
+                            <span className="text-xs text-gray-500">Page {expensePage + 1} of {Math.ceil([...expenses].reverse().filter((e: any) => {
                               if (expenseCategoryFilter !== 'All' && e.category !== expenseCategoryFilter) return false;
                               if (expenseSearch) {
                                 const search = expenseSearch.toLowerCase();
@@ -8905,7 +9071,7 @@ export default function App() {
                               return true;
                             }).length / 10)}</span>
                             <button
-                              disabled={(expensePage + 1) * 10 >= [...expenses].reverse().filter(e => {
+                              disabled={(expensePage + 1) * 10 >= [...expenses].reverse().filter((e: any) => {
                                 if (expenseCategoryFilter !== 'All' && e.category !== expenseCategoryFilter) return false;
                                 if (expenseSearch) {
                                   const search = expenseSearch.toLowerCase();
@@ -8915,7 +9081,7 @@ export default function App() {
                                 if (endDate && e.date > endDate) return false;
                                 return true;
                               }).length}
-                              onClick={() => setExpensePage(p => p + 1)}
+                              onClick={() => setExpensePage((p: number) => p + 1)}
                               className="p-2 hover:bg-white/10 rounded-lg text-gray-400 disabled:opacity-50"
                             >
                               <ChevronRight size={20} />
@@ -8960,7 +9126,7 @@ export default function App() {
                           <input
                             type="text"
                             value={vendorFormData.name}
-                            onChange={e => setVendorFormData(prev => ({ ...prev, name: e.target.value }))}
+                            onChange={e => setVendorFormData((prev: any) => ({ ...prev, name: e.target.value }))}
                             className="w-full bg-[#0F172A] border border-gray-800 rounded-xl px-4 py-3 text-white focus:border-[#0077B6] outline-none"
                           />
                         </div>
@@ -8969,7 +9135,7 @@ export default function App() {
                           <input
                             type="text"
                             value={vendorFormData.phone}
-                            onChange={e => setVendorFormData(prev => ({ ...prev, phone: e.target.value }))}
+                            onChange={e => setVendorFormData((prev: any) => ({ ...prev, phone: e.target.value }))}
                             className="w-full bg-[#0F172A] border border-gray-800 rounded-xl px-4 py-3 text-white focus:border-[#0077B6] outline-none"
                           />
                         </div>
@@ -9041,7 +9207,7 @@ export default function App() {
                             className="w-full bg-[#0F172A] border border-gray-800 rounded-xl px-4 py-3 text-white focus:border-[#0077B6] outline-none"
                           >
                             <option value="">Select a vendor...</option>
-                            {vendors.map(v => (
+                            {vendors.map((v: any) => (
                               <option key={v.id} value={v.id}>{v.name}</option>
                             ))}
                           </select>
@@ -9050,7 +9216,7 @@ export default function App() {
 
                       {/* Items to Order */}
                       <div className="space-y-4">
-                        <h4 className="text-sm font-black text-gray-500 uppercase tracking-widest">Items to Order ({products.filter(p => (p.stock || 0) <= (p.reorderLevel || 10)).length})</h4>
+                        <h4 className="text-sm font-black text-gray-500 uppercase tracking-widest">Items to Order ({products.filter((p: any) => (p.stock || 0) <= (p.reorderLevel || 10)).length})</h4>
                         <div className="bg-[#0F172A] rounded-2xl border border-gray-800 overflow-hidden">
                           <table className="w-full text-left">
                             <thead>
@@ -9062,7 +9228,7 @@ export default function App() {
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-800">
-                              {products.filter(p => (p.stock || 0) <= (p.reorderLevel || 10)).map(p => (
+                              {products.filter((p: any) => (p.stock || 0) <= (p.reorderLevel || 10)).map((p: any) => (
                                 <tr key={p.id}>
                                   <td className="px-4 py-3">
                                     <p className="text-xs font-bold text-white">{p.name}</p>
@@ -9106,7 +9272,7 @@ export default function App() {
                         <div>
                           <p className="text-xs text-gray-400">Total Order Value</p>
                           <p className="text-xl font-black text-white">TSh {
-                            products.filter(p => (p.stock || 0) <= (p.reorderLevel || 10)).reduce((sum, p) => sum + ((poDraftItems[p.id]?.qty || 0) * (poDraftItems[p.id]?.cost || 0)), 0).toLocaleString()
+                            products.filter((p: any) => (p.stock || 0) <= (p.reorderLevel || 10)).reduce((sum: number, p: any) => sum + ((poDraftItems[p.id]?.qty || 0) * (poDraftItems[p.id]?.cost || 0)), 0).toLocaleString()
                           }</p>
                         </div>
                         <div className="flex gap-3 w-full sm:w-auto">
@@ -9173,7 +9339,7 @@ export default function App() {
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                      {purchaseOrders.filter(po => po.status === 'Pending').length === 0 ? (
+                      {purchaseOrders.filter((po: any) => po.status === 'Pending').length === 0 ? (
                         <div className="text-center py-20 space-y-4">
                           <div className="bg-white/5 w-16 h-16 rounded-full flex items-center justify-center mx-auto text-gray-500">
                             <Check size={32} />
@@ -9182,7 +9348,7 @@ export default function App() {
                         </div>
                       ) : (
                         <div className="space-y-4">
-                          {purchaseOrders.filter(po => po.status === 'Pending').map(po => (
+                          {purchaseOrders.filter((po: any) => po.status === 'Pending').map((po: any) => (
                             <div key={po.id} className="bg-[#0F172A] rounded-2xl border border-gray-800 overflow-hidden">
                               <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-white/5">
                                 <div>
@@ -9195,7 +9361,7 @@ export default function App() {
                                     else {
                                       setSelectedPOId(po.id);
                                       const initialReceived: any = {};
-                                      po.items.forEach(item => {
+                                      po.items.forEach((item: any) => {
                                         initialReceived[item.productId] = { qty: item.quantity, cost: item.costPricePerCarton };
                                       });
                                       setReceivedItems(initialReceived);
@@ -9219,7 +9385,7 @@ export default function App() {
                                       </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-800">
-                                      {po.items.map(item => (
+                                      {po.items.map((item: any) => (
                                         <tr key={item.productId}>
                                           <td className="py-3 text-xs text-white font-medium">{item.productName}</td>
                                           <td className="py-3 text-xs text-gray-500">{item.quantity}</td>
@@ -9306,10 +9472,10 @@ export default function App() {
                       </button>
                       <div className="flex-1">
                         <h3 className="text-lg font-bold text-gray-900">
-                          {isProfileIncomplete ? 'Complete Store Setup' : 'Company Settings'}
+                          Company Settings
                         </h3>
                         <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-                          {isProfileIncomplete ? 'Required Information' : 'Business Identity'}
+                          Business Identity
                         </p>
                       </div>
                       <button onClick={() => setShowSettingsModal(false)} className="text-gray-400 hover:text-gray-900 p-2 transition-colors">
@@ -9326,7 +9492,7 @@ export default function App() {
                               <input 
                                 className="w-full bg-white border border-gray-200 rounded-2xl p-4 text-gray-900 focus:ring-2 focus:ring-[#0077B6] outline-none font-bold"
                                 value={settingsForm.businessName || ''}
-                                onChange={(e) => setSettingsForm(prev => ({ ...prev, businessName: e.target.value }))}
+                                onChange={(e) => setSettingsForm((prev: any) => ({ ...prev, businessName: e.target.value }))}
                               />
                             </div>
 
@@ -9335,7 +9501,7 @@ export default function App() {
                               <input 
                                 className="w-full bg-white border border-gray-200 rounded-2xl p-4 text-gray-900 focus:ring-2 focus:ring-[#0077B6] outline-none font-bold"
                                 value={settingsForm.address || ''}
-                                onChange={(e) => setSettingsForm(prev => ({ ...prev, address: e.target.value }))}
+                                onChange={(e) => setSettingsForm((prev: any) => ({ ...prev, address: e.target.value }))}
                               />
                             </div>
 
@@ -9345,7 +9511,7 @@ export default function App() {
                                 <input 
                                   className="w-full bg-white border border-gray-200 rounded-2xl p-4 text-gray-900 focus:ring-2 focus:ring-[#0077B6] outline-none font-bold"
                                   value={settingsForm.cityState || ''}
-                                  onChange={(e) => setSettingsForm(prev => ({ ...prev, cityState: e.target.value }))}
+                                  onChange={(e) => setSettingsForm((prev: any) => ({ ...prev, cityState: e.target.value }))}
                                 />
                               </div>
                               <div className="space-y-2">
@@ -9353,7 +9519,7 @@ export default function App() {
                                 <input 
                                   className="w-full bg-white border border-gray-200 rounded-2xl p-4 text-gray-900 focus:ring-2 focus:ring-[#0077B6] outline-none font-bold"
                                   value={settingsForm.postalCode || ''}
-                                  onChange={(e) => setSettingsForm(prev => ({ ...prev, postalCode: e.target.value }))}
+                                  onChange={(e) => setSettingsForm((prev: any) => ({ ...prev, postalCode: e.target.value }))}
                                 />
                               </div>
                             </div>
@@ -9363,7 +9529,7 @@ export default function App() {
                               <input 
                                 className="w-full bg-white border border-gray-200 rounded-2xl p-4 text-gray-900 focus:ring-2 focus:ring-[#0077B6] outline-none font-bold"
                                 value={settingsForm.tinNumber || ''}
-                                onChange={(e) => setSettingsForm(prev => ({ ...prev, tinNumber: e.target.value }))}
+                                onChange={(e) => setSettingsForm((prev: any) => ({ ...prev, tinNumber: e.target.value }))}
                               />
                             </div>
                           </div>
@@ -9387,7 +9553,7 @@ export default function App() {
                                 type="checkbox"
                                 className="w-6 h-6 rounded-lg bg-gray-100 border-gray-200 text-[#0077B6] focus:ring-[#0077B6]"
                                 checked={settingsForm.includeReceivableInRevenue || false}
-                                onChange={(e) => setSettingsForm(prev => ({ ...prev, includeReceivableInRevenue: e.target.checked }))}
+                                onChange={(e) => setSettingsForm((prev: any) => ({ ...prev, includeReceivableInRevenue: e.target.checked }))}
                               />
                             </div>
 
@@ -9400,7 +9566,7 @@ export default function App() {
                                 type="checkbox"
                                 className="w-6 h-6 rounded-lg bg-gray-100 border-gray-200 text-[#0077B6] focus:ring-[#0077B6]"
                                 checked={settingsForm.isVatApplicable || false}
-                                onChange={(e) => setSettingsForm(prev => ({ ...prev, isVatApplicable: e.target.checked }))}
+                                onChange={(e) => setSettingsForm((prev: any) => ({ ...prev, isVatApplicable: e.target.checked }))}
                               />
                             </div>
 
@@ -9411,7 +9577,7 @@ export default function App() {
                                   type="number"
                                   className="w-full bg-white border border-gray-200 rounded-2xl p-4 text-gray-900 focus:ring-2 focus:ring-[#0077B6] outline-none font-bold"
                                   value={settingsForm.vatRate || 18}
-                                  onChange={(e) => setSettingsForm(prev => ({ ...prev, vatRate: Number(e.target.value) }))}
+                                  onChange={(e) => setSettingsForm((prev: any) => ({ ...prev, vatRate: Number(e.target.value) }))}
                                 />
                               </div>
                             )}
@@ -9462,44 +9628,40 @@ export default function App() {
                           </div>
                         </div>
 
-                        {!isProfileIncomplete && (
-                          <div className="space-y-6 bg-red-50 p-8 rounded-[32px] border border-red-100 shadow-sm">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center text-red-500">
-                                <Trash2 size={20} />
-                              </div>
-                              <h4 className="text-lg font-bold text-red-900">Danger Zone</h4>
+                        <div className="space-y-6 bg-red-50 p-8 rounded-[32px] border border-red-100 shadow-sm">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center text-red-500">
+                              <Trash2 size={20} />
                             </div>
-                            <div className="space-y-4">
-                              <p className="text-xs text-red-600 leading-relaxed">
-                                Permanently delete all products, sales, expenses, orders, and customers from your store. This action is irreversible.
-                              </p>
-                              <button 
-                                onClick={handleClearAllData}
-                                disabled={isClearingData}
-                                className="w-full py-4 rounded-2xl bg-red-100 text-red-600 border border-red-200 font-bold hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-2"
-                              >
-                                {isClearingData ? (
-                                  <div className="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                  <>
-                                    <Trash2 size={18} />
-                                    Clear All Store Data
-                                  </>
-                                )}
-                              </button>
-                            </div>
+                            <h4 className="text-lg font-bold text-red-900">Danger Zone</h4>
                           </div>
-                        )}
+                          <div className="space-y-4">
+                            <p className="text-xs text-red-600 leading-relaxed">
+                              Permanently delete all products, sales, expenses, orders, and customers from your store. This action is irreversible.
+                            </p>
+                            <button 
+                              onClick={handleClearAllData}
+                              disabled={isClearingData}
+                              className="w-full py-4 rounded-2xl bg-red-100 text-red-600 border border-red-200 font-bold hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-2"
+                            >
+                              {isClearingData ? (
+                                <div className="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <>
+                                  <Trash2 size={18} />
+                                  Clear All Store Data
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
 
                         <button 
                           onClick={handleSaveSettings}
-                          disabled={!isFormValid || isSavingSettings}
-                          className={`w-full py-5 rounded-2xl font-bold text-lg shadow-lg transition-all flex items-center justify-center gap-2 ${
-                            !isFormValid ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none' : 'bg-[#ff6b00] text-white hover:opacity-90 active:scale-95 shadow-orange-500/20 shadow-xl'
-                          }`}
+                          disabled={isSavingSettings}
+                          className="w-full py-5 rounded-2xl font-bold text-lg shadow-lg transition-all flex items-center justify-center gap-2 bg-[#ff6b00] text-white hover:opacity-90 active:scale-95 shadow-orange-500/20 shadow-xl"
                         >
-                          {isSavingSettings ? 'Saving...' : (isFormValid ? 'Save Settings' : 'Complete Required Fields')}
+                          {isSavingSettings ? 'Saving...' : 'Save Settings'}
                         </button>
                       </div>
                     </div>
@@ -9583,4 +9745,4 @@ export default function App() {
       </MapProvider>
     </Router>
   );
-}
+};

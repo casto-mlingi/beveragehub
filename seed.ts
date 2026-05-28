@@ -10,6 +10,9 @@ async function seed() {
   try {
     console.log("Seeding database...");
 
+    // Clear Categories to avoid 404 images from old entries
+    await pool.query('DELETE FROM categories');
+
     // Seed Ads
     const ads = [
       { id: '1', src: '/ads/ad_jinro.png', alt: 'Jinro Soju - Limited Offer 13,000 TZS', order: 0 },
@@ -67,14 +70,14 @@ async function seed() {
 
     // Seed Categories
     const categories = [
-      { id: 'Beer', name: 'BEERS', image: 'https://images.unsplash.com/photo-1608270586620-248524c67de9?w=600&q=85&auto=format&fit=crop', order: 0 },
-      { id: 'Spirits', name: 'SPIRITS', image: 'https://images.unsplash.com/photo-1569529465841-dfecdab7503b?w=600&q=85&auto=format&fit=crop', order: 1 },
+      { id: 'Beer', name: 'BEERS', image: 'https://images.unsplash.com/photo-1535958636474-b021ee887b13?w=600&q=85&auto=format&fit=crop', order: 0 },
+      { id: 'Spirits', name: 'SPIRITS', image: 'https://images.unsplash.com/photo-1592318963761-1155f443a60e?w=600&q=85&auto=format&fit=crop', order: 1 },
       { id: 'Red Wines', name: 'RED WINES', image: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&q=85&auto=format&fit=crop', order: 2 },
-      { id: 'White Wines', name: 'WHITE WINES', image: 'https://images.unsplash.com/photo-1474722883778-792e7990302f?w=600&q=85&auto=format&fit=crop', order: 3 },
-      { id: 'Bubbles', name: 'BUBBLES', image: 'https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?w=600&q=85&auto=format&fit=crop', order: 4 },
-      { id: 'Soft Drinks', name: 'SOFT DRINKS', image: 'https://images.unsplash.com/photo-1527960471264-932f39eb5846?w=600&q=85&auto=format&fit=crop', order: 5 },
-      { id: 'Extras', name: 'EXTRAS', image: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?w=600&q=85&auto=format&fit=crop', order: 6 },
-      { id: 'Hampers & Gifts', name: 'HAMPERS & GIFTS', image: 'https://images.unsplash.com/photo-1607344645866-009c320b63e0?w=600&q=85&auto=format&fit=crop', order: 7 },
+      { id: 'White Wines', name: 'WHITE WINES', image: 'https://images.unsplash.com/photo-1506377247377-2a5b3b0ca7df?w=600&q=85&auto=format&fit=crop', order: 3 },
+      { id: 'Bubbles', name: 'BUBBLES', image: 'https://images.unsplash.com/photo-1594460541134-293060ffe99d?w=600&q=85&auto=format&fit=crop', order: 4 },
+      { id: 'Soft Drinks', name: 'SOFT DRINKS', image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=600&q=85&auto=format&fit=crop', order: 5 },
+      { id: 'Extras', name: 'EXTRAS', image: 'https://images.unsplash.com/photo-1599490659223-930b44c0273f?w=600&q=85&auto=format&fit=crop', order: 6 },
+      { id: 'Hampers & Gifts', name: 'HAMPERS & GIFTS', image: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=600&q=85&auto=format&fit=crop', order: 7 },
     ];
     for (const cat of categories) {
       await pool.query(
