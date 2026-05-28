@@ -71,13 +71,13 @@ async function seed() {
     // Seed Categories
     const categories = [
       { id: 'Beer', name: 'BEERS', image: 'https://images.unsplash.com/photo-1535958636474-b021ee887b13?w=600&q=85&auto=format&fit=crop', order: 0 },
-      { id: 'Spirits', name: 'SPIRITS', image: 'https://images.unsplash.com/photo-1592318963761-1155f443a60e?w=600&q=85&auto=format&fit=crop', order: 1 },
+      { id: 'Spirits', name: 'SPIRITS', image: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=600&q=85&auto=format&fit=crop', order: 1 },
       { id: 'Red Wines', name: 'RED WINES', image: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&q=85&auto=format&fit=crop', order: 2 },
-      { id: 'White Wines', name: 'WHITE WINES', image: 'https://images.unsplash.com/photo-1506377247377-2a5b3b0ca7df?w=600&q=85&auto=format&fit=crop', order: 3 },
-      { id: 'Bubbles', name: 'BUBBLES', image: 'https://images.unsplash.com/photo-1594460541134-293060ffe99d?w=600&q=85&auto=format&fit=crop', order: 4 },
-      { id: 'Soft Drinks', name: 'SOFT DRINKS', image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=600&q=85&auto=format&fit=crop', order: 5 },
-      { id: 'Extras', name: 'EXTRAS', image: 'https://images.unsplash.com/photo-1599490659223-930b44c0273f?w=600&q=85&auto=format&fit=crop', order: 6 },
-      { id: 'Hampers & Gifts', name: 'HAMPERS & GIFTS', image: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=600&q=85&auto=format&fit=crop', order: 7 },
+      { id: 'White Wines', name: 'WHITE WINES', image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600&q=85&auto=format&fit=crop', order: 3 },
+      { id: 'Bubbles', name: 'BUBBLES', image: 'https://images.unsplash.com/photo-1558001256-020ee8099958?w=600&q=85&auto=format&fit=crop', order: 4 },
+      { id: 'Soft Drinks', name: 'SOFT DRINKS', image: 'https://images.unsplash.com/photo-1543083115-638c32cd3d58?w=600&q=85&auto=format&fit=crop', order: 5 },
+      { id: 'Extras', name: 'EXTRAS', image: 'https://images.unsplash.com/photo-1590666012776-e9b81e7dff26?w=600&q=85&auto=format&fit=crop', order: 6 },
+      { id: 'Hampers & Gifts', name: 'HAMPERS & GIFTS', image: 'https://images.unsplash.com/photo-1513201099705-a9746e1e201f?w=600&q=85&auto=format&fit=crop', order: 7 },
     ];
     for (const cat of categories) {
       await pool.query(

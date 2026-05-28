@@ -1005,7 +1005,7 @@ const CLIENT_CATEGORIES = [
   { 
     id: 'Spirits', 
     name: 'SPIRITS', 
-    image: 'https://images.unsplash.com/photo-1569529465841-dfecdab7503b?w=600&q=85&auto=format&fit=crop'
+    image: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=600&q=85&auto=format&fit=crop'
   },
   { 
     id: 'Red Wines', 
@@ -1015,27 +1015,27 @@ const CLIENT_CATEGORIES = [
   { 
     id: 'White Wines', 
     name: 'WHITE WINES', 
-    image: 'https://images.unsplash.com/photo-1474722883778-792e7990302f?w=600&q=85&auto=format&fit=crop'
+    image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600&q=85&auto=format&fit=crop'
   },
   { 
     id: 'Bubbles', 
     name: 'BUBBLES', 
-    image: 'https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?w=600&q=85&auto=format&fit=crop'
+    image: 'https://images.unsplash.com/photo-1558001256-020ee8099958?w=600&q=85&auto=format&fit=crop'
   },
   { 
     id: 'Soft Drinks', 
     name: 'SOFT DRINKS', 
-    image: 'https://images.unsplash.com/photo-1527960471264-932f39eb5846?w=600&q=85&auto=format&fit=crop'
+    image: 'https://images.unsplash.com/photo-1543083115-638c32cd3d58?w=600&q=85&auto=format&fit=crop'
   },
   { 
     id: 'Extras', 
     name: 'EXTRAS', 
-    image: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?w=600&q=85&auto=format&fit=crop'
+    image: 'https://images.unsplash.com/photo-1590666012776-e9b81e7dff26?w=600&q=85&auto=format&fit=crop'
   },
   { 
     id: 'Hampers & Gifts', 
     name: 'HAMPERS & GIFTS', 
-    image: 'https://images.unsplash.com/photo-1607344645866-009c320b63e0?w=600&q=85&auto=format&fit=crop'
+    image: 'https://images.unsplash.com/photo-1513201099705-a9746e1e201f?w=600&q=85&auto=format&fit=crop'
   },
 ];
 
