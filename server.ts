@@ -46,8 +46,16 @@ async function startServer() {
 
   const pool = new Pool({
     connectionString,
-    ssl: connectionString?.includes('sslmode=require') ? { rejectUnauthorized: false } : false
+    ssl: connectionString?.includes('sslmode=require') ? { rejectUnauthorized: false } : false,
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000, // 10s timeout
   });
+
+  // Database setup logging
+  if (connectionString) {
+    console.log("[DB] Pool initialized with max 20 connections");
+  }
 
   // Helper for generic CRUD
   const toCamel = (str: string) => str.replace(/([-_][a-z])/g, group => group.toUpperCase().replace('-', '').replace('_', ''));
@@ -64,9 +72,17 @@ async function startServer() {
   };
 
   const handleQuery = async (res: express.Response, query: string, params: any[] = []) => {
+    const start = Date.now();
     try {
       const result = await pool.query(query, params);
-      res.json(mapKeys(result.rows));
+      const dbTime = Date.now() - start;
+      const data = mapKeys(result.rows);
+      const totalTime = Date.now() - start;
+      
+      if (totalTime > 500) {
+        console.warn(`[DB] Slow query (${totalTime}ms, DB: ${dbTime}ms): ${query.substring(0, 100)}...`);
+      }
+      res.json(data);
     } catch (err: any) {
       console.error("DB Error:", err);
       let message = err.message;
@@ -81,16 +97,22 @@ async function startServer() {
 
   // Initialize database (non-blocking)
   (async () => {
+    const startInit = Date.now();
     try {
       // Test connection
+      console.log("[DB] Testing connection...");
       const client = await pool.connect();
-      console.log("Successfully connected to PostgreSQL");
+      console.log(`[DB] Successfully connected to PostgreSQL in ${Date.now() - startInit}ms`);
       client.release();
 
+      console.log("[DB] Running schema initialization...");
+      const schemaStart = Date.now();
       const schema = fs.readFileSync(path.join(process.cwd(), 'schema.sql'), 'utf8');
       await pool.query(schema);
+      console.log(`[DB] Schema applied in ${Date.now() - schemaStart}ms`);
       
       // Ensure password column exists (migration)
+      const migrationStart = Date.now();
       try {
         await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS password TEXT");
         
@@ -134,11 +156,28 @@ async function startServer() {
         await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS lat NUMERIC");
         await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS lng NUMERIC");
 
+        // Make company_id optional in all tables (SaaS removal)
+        const tablesWithCompanyId = [
+          'users', 'products', 'customers', 'vendors', 
+          'expenses', 'orders', 'sales', 'purchase_orders', 'inventory_adjustments'
+        ];
+        for (const table of tablesWithCompanyId) {
+          try {
+            await pool.query(`ALTER TABLE ${table} ALTER COLUMN company_id DROP NOT NULL`);
+          } catch (e) { /* ignore if column doesn't exist or already nullable */ }
+        }
+
+        // Add missing order columns
+        await pool.query("ALTER TABLE orders ADD COLUMN IF NOT EXISTS dest_lat NUMERIC");
+        await pool.query("ALTER TABLE orders ADD COLUMN IF NOT EXISTS dest_lng NUMERIC");
+        await pool.query("ALTER TABLE orders ADD COLUMN IF NOT EXISTS promo_code TEXT");
+
+        console.log(`[DB] Migrations completed in ${Date.now() - migrationStart}ms`);
       } catch (e) {
         console.error("Migration error:", e);
       }
       
-      console.log("Database initialized successfully");
+      console.log(`[DB] Database fully initialized in ${Date.now() - startInit}ms`);
     } catch (err: any) {
       console.error("CRITICAL: Database initialization failed!");
       console.error(`Error details: ${err.message}`);

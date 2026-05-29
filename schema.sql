@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- Products table
 CREATE TABLE IF NOT EXISTS products (
     id TEXT PRIMARY KEY,
-    company_id TEXT NOT NULL,
+    company_id TEXT,
     name TEXT NOT NULL,
     category TEXT,
     cost_price NUMERIC NOT NULL,
@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS products (
 -- Customers table
 CREATE TABLE IF NOT EXISTS customers (
     id TEXT PRIMARY KEY,
-    company_id TEXT NOT NULL,
+    company_id TEXT,
     name TEXT NOT NULL,
     email TEXT,
     phone TEXT,
@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS customers (
 -- Vendors table
 CREATE TABLE IF NOT EXISTS vendors (
     id TEXT PRIMARY KEY,
-    company_id TEXT NOT NULL,
+    company_id TEXT,
     name TEXT NOT NULL,
     contact_person TEXT,
     phone TEXT,
@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS vendors (
 -- Expenses table
 CREATE TABLE IF NOT EXISTS expenses (
     id TEXT PRIMARY KEY,
-    company_id TEXT NOT NULL,
+    company_id TEXT,
     description TEXT NOT NULL,
     amount NUMERIC NOT NULL,
     category TEXT NOT NULL,
@@ -85,7 +85,7 @@ CREATE TABLE IF NOT EXISTS expenses (
 -- Orders table
 CREATE TABLE IF NOT EXISTS orders (
     id TEXT PRIMARY KEY,
-    company_id TEXT NOT NULL,
+    company_id TEXT,
     customer_name TEXT NOT NULL,
     customer_phone TEXT,
     items JSONB NOT NULL,
@@ -102,13 +102,16 @@ CREATE TABLE IF NOT EXISTS orders (
     status TEXT,
     destination_address TEXT,
     driver_name TEXT,
-    vehicle TEXT
+    vehicle TEXT,
+    dest_lat NUMERIC,
+    dest_lng NUMERIC,
+    promo_code TEXT
 );
 
 -- Sales table
 CREATE TABLE IF NOT EXISTS sales (
     id TEXT PRIMARY KEY,
-    company_id TEXT NOT NULL,
+    company_id TEXT,
     product_id TEXT NOT NULL,
     product_name TEXT NOT NULL,
     quantity INTEGER NOT NULL,
@@ -126,7 +129,7 @@ CREATE TABLE IF NOT EXISTS sales (
 -- Purchase Orders table
 CREATE TABLE IF NOT EXISTS purchase_orders (
     id TEXT PRIMARY KEY,
-    company_id TEXT NOT NULL,
+    company_id TEXT,
     vendor_id TEXT NOT NULL,
     vendor_name TEXT NOT NULL,
     items JSONB NOT NULL,
@@ -139,7 +142,7 @@ CREATE TABLE IF NOT EXISTS purchase_orders (
 -- Inventory Adjustments table
 CREATE TABLE IF NOT EXISTS inventory_adjustments (
     id TEXT PRIMARY KEY,
-    company_id TEXT NOT NULL,
+    company_id TEXT,
     product_id TEXT NOT NULL,
     product_name TEXT NOT NULL,
     type TEXT NOT NULL,

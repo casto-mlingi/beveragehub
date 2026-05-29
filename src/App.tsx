@@ -3706,7 +3706,7 @@ const CheckoutFlow = ({ isOpen, onClose, cart, isLoaded, onComplete, userName, u
       </div>
 
       {/* Footer Actions */}
-      <div className="fixed bottom-0 left-0 right-0 p-6 bg-white/80 backdrop-blur-xl border-t border-gray-50 z-20">
+      <div className="fixed bottom-0 left-0 right-0 px-6 py-5 bg-white/80 backdrop-blur-xl border-t border-gray-50 z-20" style={{ top: '224px', height: '98px' }}>
         {step === 2 && (
           <button 
             disabled={!selectedTruck}
@@ -8068,6 +8068,7 @@ export default function App() {
 
     const orderId = 'ORD-' + Math.random().toString(36).substr(2, 9).toUpperCase();
     const newSales: Sale[] = [];
+    const productsToUpdate: Product[] = [];
     const updatedProducts = [...products];
 
     for (const item of cart) {
@@ -8108,6 +8109,7 @@ export default function App() {
           product.batches = sortedBatches;
           product.stock = sortedBatches.reduce((sum, b) => sum + b.stock, 0);
           updatedProducts[productIndex] = product;
+          productsToUpdate.push(product);
         }
       }
     }
@@ -8135,7 +8137,7 @@ export default function App() {
     };
 
     try {
-      for (const product of updatedProducts) {
+      for (const product of productsToUpdate) {
         await apiService.post('products', {
           ...product,
           stock: product.stock,
