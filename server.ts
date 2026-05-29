@@ -27,8 +27,11 @@ async function startServer() {
     res.status(500).json({ error: "Internal Server Error", details: err.message });
   });
 
-  // Database setup
-  let connectionString = process.env.PRIVATE_DATABASE_URL || process.env.DATABASE_URL;
+  // Database setup: Use PRIVATE_DATABASE_URL in production/online, otherwise use DATABASE_URL
+  const isProduction = process.env.NODE_ENV === "production";
+  let connectionString = isProduction 
+    ? (process.env.PRIVATE_DATABASE_URL || process.env.DATABASE_URL)
+    : process.env.DATABASE_URL;
   
   if (!connectionString) {
     console.warn("DATABASE_URL is not set. Please provide it via environment variables.");
@@ -38,7 +41,7 @@ async function startServer() {
     try {
       const url = new URL(connectionString.startsWith('postgres') ? connectionString : `postgres://${connectionString}`);
       const maskedPwd = url.password ? url.password.substring(0, 3) + "..." : "none";
-      console.log(`[DB] Attempting connection to ${url.hostname}:${url.port} as user "${url.username}" with password starting with "${maskedPwd}"`);
+      console.log(`[DB] [${isProduction ? 'PRODUCTION' : 'LOCAL'}] Attempting connection to ${url.hostname}:${url.port}`);
     } catch (e) {
       console.error("[DB] Invalid connection string format");
     }
