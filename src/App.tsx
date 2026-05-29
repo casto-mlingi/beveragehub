@@ -407,11 +407,13 @@ const CATEGORIES: Record<string, string[]> = {
 
 const formatMoney = (val: string | number | undefined | null) => {
   if (val === undefined || val === null) return '0';
-  // Remove leading zeros and handle commas
-  const clean = val.toString().replace(/,/g, '').replace(/^0+(?=\d)/, '');
-  const num = Number(clean) || 0;
-  return num.toLocaleString('en-US');
+  // Use Number() to handle strings, then round to 2 decimal places to fix floating point issues
+  const num = typeof val === 'number' ? val : Number(val.toString().replace(/,/g, ''));
+  const rounded = Math.round((num + Number.EPSILON) * 100) / 100;
+  return rounded.toLocaleString('en-US');
 };
+
+const financialRound = (num: number) => Math.round((num + Number.EPSILON) * 100) / 100;
 
 const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
   const R = 6371; // km
@@ -725,57 +727,57 @@ const FinancialDetailModal = ({ isOpen, onClose, type, data, user, onUpdateUser 
           </button>
         </div>
 
-        <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+        <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto overflow-x-hidden">
           {type === 'profit' && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-[#0B172A] p-4 rounded-2xl border border-gray-800">
-                  <p className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest font-bold">Gross Revenue</p>
-                  <p className="font-bold text-white">TSh {formatMoney(data.revenue)}</p>
+                <div className="bg-[#0B172A] p-4 rounded-2xl border border-gray-800 min-w-0 overflow-hidden">
+                  <p className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest font-bold truncate">Gross Revenue</p>
+                  <p className="font-bold text-white truncate">TSh {formatMoney(data.revenue)}</p>
                 </div>
                 {data.vatApplicable && (
-                  <div className="bg-[#0B172A] p-4 rounded-2xl border border-gray-800">
-                    <p className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest font-bold">{data.vatRate}% VAT</p>
-                    <p className="font-bold text-red-400">-TSh {formatMoney(data.vat)}</p>
+                  <div className="bg-[#0B172A] p-4 rounded-2xl border border-gray-800 min-w-0 overflow-hidden">
+                    <p className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest font-bold truncate">{data.vatRate}% VAT</p>
+                    <p className="font-bold text-red-400 truncate">-TSh {formatMoney(data.vat)}</p>
                   </div>
                 )}
-                <div className="bg-[#0B172A] p-4 rounded-2xl border border-gray-800">
-                  <p className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest font-bold">FIFO COGS</p>
-                  <p className="font-bold text-red-400">-TSh {formatMoney(data.cogs)}</p>
+                <div className="bg-[#0B172A] p-4 rounded-2xl border border-gray-800 min-w-0 overflow-hidden">
+                  <p className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest font-bold truncate">FIFO COGS</p>
+                  <p className="font-bold text-red-400 truncate">-TSh {formatMoney(data.cogs)}</p>
                 </div>
-                <div className="bg-[#0B172A] p-4 rounded-2xl border border-gray-800">
-                  <p className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest font-bold">OPEX</p>
-                  <p className="font-bold text-red-400">-TSh {formatMoney(data.opex)}</p>
+                <div className="bg-[#0B172A] p-4 rounded-2xl border border-gray-800 min-w-0 overflow-hidden">
+                  <p className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest font-bold truncate">OPEX</p>
+                  <p className="font-bold text-red-400 truncate">-TSh {formatMoney(data.opex)}</p>
                 </div>
-                <div className="bg-[#0B172A] p-4 rounded-2xl border border-gray-800">
-                  <p className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest font-bold">Expired Products</p>
-                  <p className="font-bold text-red-400">-TSh {formatMoney(data.expiredCost)}</p>
+                <div className="bg-[#0B172A] p-4 rounded-2xl border border-gray-800 min-w-0 overflow-hidden col-span-2">
+                  <p className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest font-bold truncate">Expired Products</p>
+                  <p className="font-bold text-red-400 truncate">-TSh {formatMoney(data.expiredCost)}</p>
                 </div>
               </div>
-              <div className="bg-green-500/10 p-6 rounded-2xl border border-green-500/20">
-                <p className="text-xs text-green-500 font-bold uppercase tracking-widest mb-1">Net Profit (Final)</p>
-                <p className="text-3xl font-black text-green-400">TSh {formatMoney(data.netProfit)}</p>
+              <div className="bg-green-500/10 p-6 rounded-2xl border border-green-500/20 min-w-0 overflow-hidden">
+                <p className="text-xs text-green-500 font-bold uppercase tracking-widest mb-1 truncate">Net Profit (Final)</p>
+                <p className="text-3xl font-black text-green-400 truncate">TSh {formatMoney(data.netProfit)}</p>
               </div>
             </div>
           )}
 
           {type === 'inventory_asset' && data.products && (
             <div className="space-y-4">
-              <div className="bg-[#0B172A] p-6 rounded-2xl border border-gray-800">
-                <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mb-1">Total Inventory Value</p>
-                <p className="text-3xl font-black text-white">TSh {(data.value || 0).toLocaleString()}</p>
-                <p className="text-[10px] text-gray-500 mt-2">Calculated as: Current Stock × Cost Price</p>
+              <div className="bg-[#0B172A] p-6 rounded-2xl border border-gray-800 min-w-0 overflow-hidden">
+                <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mb-1 truncate">Total Inventory Value</p>
+                <p className="text-3xl font-black text-white truncate">TSh {formatMoney(data.value)}</p>
+                <p className="text-[10px] text-gray-500 mt-2 truncate">Calculated as: Current Stock × Cost Price</p>
               </div>
               
               <h4 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em] ml-1">Asset Breakdown</h4>
               <div className="space-y-2">
                 {data.products.map((p) => (
-                  <div key={p.id} className="flex justify-between items-center bg-[#0B172A] p-4 rounded-2xl border border-gray-800/50">
-                    <div>
-                      <p className="font-bold text-white text-sm">{p.name}</p>
-                      <p className="text-[10px] text-gray-500">{p.stock} units @ TSh {(p.costPrice || 0).toLocaleString()}</p>
+                  <div key={p.id} className="flex justify-between items-center bg-[#0B172A] p-4 rounded-2xl border border-gray-800/50 min-w-0 overflow-hidden">
+                    <div className="min-w-0 flex-1 mr-4">
+                      <p className="font-bold text-white text-sm truncate">{p.name}</p>
+                      <p className="text-[10px] text-gray-500 truncate">{p.stock} units @ TSh {formatMoney(p.costPrice)}</p>
                     </div>
-                    <p className="font-black text-white text-sm">TSh {formatMoney(p.stock * p.costPrice)}</p>
+                    <p className="font-black text-white text-sm shrink-0">TSh {formatMoney(p.stock * p.costPrice)}</p>
                   </div>
                 ))}
               </div>
@@ -784,9 +786,9 @@ const FinancialDetailModal = ({ isOpen, onClose, type, data, user, onUpdateUser 
 
           {type === 'accounts' && data.balances && (
             <div className="space-y-4">
-              <div className="bg-[#0B172A] p-6 rounded-2xl border border-gray-800">
-                <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mb-1">Total Cash & Bank</p>
-                <p className={`text-3xl font-black ${Number(data.total) >= 0 ? 'text-blue-400' : 'text-red-400'}`}>
+              <div className="bg-[#0B172A] p-6 rounded-2xl border border-gray-800 min-w-0 overflow-hidden">
+                <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mb-1 truncate">Total Cash & Bank</p>
+                <p className={`text-3xl font-black truncate ${Number(data.total) >= 0 ? 'text-blue-400' : 'text-red-400'}`}>
                   TSh {formatMoney(data.total)}
                 </p>
               </div>
@@ -794,14 +796,14 @@ const FinancialDetailModal = ({ isOpen, onClose, type, data, user, onUpdateUser 
               <h4 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em] ml-1">Account Balances</h4>
               <div className="space-y-2">
                 {Object.entries(data.balances).map(([account, balance]) => (
-                  <div key={account} className="flex justify-between items-center bg-[#0B172A] p-4 rounded-2xl border border-gray-800/50">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-500">
+                  <div key={account} className="flex justify-between items-center bg-[#0B172A] p-4 rounded-2xl border border-gray-800/50 min-w-0 overflow-hidden">
+                    <div className="flex items-center gap-3 min-w-0 flex-1 mr-4">
+                      <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-500 shrink-0">
                         <DollarSign size={18} />
                       </div>
-                      <p className="font-bold text-white">{account}</p>
+                      <p className="font-bold text-white truncate">{account}</p>
                     </div>
-                    <p className={`font-black text-sm ${Number(balance) >= 0 ? 'text-white' : 'text-red-400'}`}>
+                    <p className={`font-black text-sm shrink-0 ${Number(balance) >= 0 ? 'text-white' : 'text-red-400'}`}>
                       TSh {formatMoney(balance)}
                     </p>
                   </div>
@@ -815,14 +817,14 @@ const FinancialDetailModal = ({ isOpen, onClose, type, data, user, onUpdateUser 
               <h4 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em]">Top Expense Categories</h4>
               <div className="space-y-2">
                 {data.categories.map((cat, idx) => (
-                  <div key={idx} className="flex justify-between items-center bg-[#0B172A] p-4 rounded-2xl border border-gray-800/50">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-red-500/10 rounded-xl flex items-center justify-center text-red-500">
+                  <div key={idx} className="flex justify-between items-center bg-[#0B172A] p-4 rounded-2xl border border-gray-800/50 min-w-0 overflow-hidden">
+                    <div className="flex items-center gap-3 min-w-0 flex-1 mr-4">
+                      <div className="w-10 h-10 bg-red-500/10 rounded-xl flex items-center justify-center text-red-500 shrink-0">
                         <ArrowLeft size={18} className="rotate-45" />
                       </div>
-                      <p className="font-bold text-white">{cat.name}</p>
+                      <p className="font-bold text-white truncate">{cat.name}</p>
                     </div>
-                    <p className="font-black text-white">TSh {formatMoney(cat.amount)}</p>
+                    <p className="font-black text-white shrink-0">TSh {formatMoney(cat.amount)}</p>
                   </div>
                 ))}
               </div>
@@ -832,52 +834,52 @@ const FinancialDetailModal = ({ isOpen, onClose, type, data, user, onUpdateUser 
           {type === 'revenue' && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-green-500/10 p-6 rounded-2xl border border-green-500/20">
-                  <p className="text-[10px] text-green-500 font-bold uppercase tracking-widest mb-1">Cash in Hand</p>
-                  <p className="text-xl font-black text-green-400">TSh {(data.cash || 0).toLocaleString()}</p>
+                <div className="bg-green-500/10 p-6 rounded-2xl border border-green-500/20 min-w-0 overflow-hidden">
+                  <p className="text-[10px] text-green-500 font-bold uppercase tracking-widest mb-1 truncate">Cash in Hand</p>
+                  <p className="text-xl font-black text-green-400 truncate">TSh {formatMoney(data.cash)}</p>
                 </div>
-                <div className="bg-blue-500/10 p-6 rounded-2xl border border-blue-500/20">
-                  <p className="text-[10px] text-blue-500 font-bold uppercase tracking-widest mb-1">Mobile Money</p>
-                  <p className="text-xl font-black text-blue-400">TSh {(data.mobile || 0).toLocaleString()}</p>
+                <div className="bg-blue-500/10 p-6 rounded-2xl border border-blue-500/20 min-w-0 overflow-hidden">
+                  <p className="text-[10px] text-blue-500 font-bold uppercase tracking-widest mb-1 truncate">Mobile Money</p>
+                  <p className="text-xl font-black text-blue-400 truncate">TSh {formatMoney(data.mobile)}</p>
                 </div>
-                <div className="bg-purple-500/10 p-6 rounded-2xl border border-purple-500/20">
-                  <p className="text-[10px] text-purple-500 font-bold uppercase tracking-widest mb-1">Card / Bank</p>
-                  <p className="text-xl font-black text-purple-400">TSh {(data.card || 0).toLocaleString()}</p>
+                <div className="bg-purple-500/10 p-6 rounded-2xl border border-purple-500/20 min-w-0 overflow-hidden">
+                  <p className="text-[10px] text-purple-500 font-bold uppercase tracking-widest mb-1 truncate">Card / Bank</p>
+                  <p className="text-xl font-black text-purple-400 truncate">TSh {formatMoney(data.card)}</p>
                 </div>
-                <div className="bg-orange-500/10 p-6 rounded-2xl border border-orange-500/20 relative group">
-                  <div className="flex justify-between items-start mb-1">
-                    <p className="text-[10px] text-orange-500 font-bold uppercase tracking-widest">Accounts Receivable</p>
+                <div className="bg-orange-500/10 p-6 rounded-2xl border border-orange-500/20 relative group min-w-0 overflow-hidden">
+                  <div className="flex justify-between items-start mb-1 gap-2">
+                    <p className="text-[10px] text-orange-500 font-bold uppercase tracking-widest truncate">Accounts Receivable</p>
                     {onUpdateUser && user && (
                       <button 
                         onClick={() => onUpdateUser({ includeReceivableInRevenue: !user.includeReceivableInRevenue })}
-                        className={`w-8 h-4 rounded-full relative transition-colors duration-200 ${user.includeReceivableInRevenue ? 'bg-orange-500' : 'bg-gray-700'}`}
+                        className={`w-8 h-4 rounded-full relative transition-colors duration-200 shrink-0 ${user.includeReceivableInRevenue ? 'bg-orange-500' : 'bg-gray-700'}`}
                       >
                         <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all duration-200 ${user.includeReceivableInRevenue ? 'left-[18px]' : 'left-[2px]'}`} />
                       </button>
                     )}
                   </div>
-                  <p className="text-xl font-black text-orange-400">TSh {(data.credit || 0).toLocaleString()}</p>
-                  <p className="text-[8px] text-orange-500/50 mt-1 font-bold uppercase tracking-tighter">
+                  <p className="text-xl font-black text-orange-400 truncate">TSh {formatMoney(data.credit)}</p>
+                  <p className="text-[8px] text-orange-500/50 mt-1 font-bold uppercase tracking-tighter truncate">
                     {user?.includeReceivableInRevenue ? 'Included in Gross Revenue' : 'Excluded from Gross Revenue'}
                   </p>
                 </div>
               </div>
-              <div className="bg-[#0B172A] p-6 rounded-2xl border border-gray-800">
-                <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mb-1">Total Gross Revenue</p>
-                <p className="text-2xl font-black text-white">TSh {(data.total || 0).toLocaleString()}</p>
+              <div className="bg-[#0B172A] p-6 rounded-2xl border border-gray-800 min-w-0 overflow-hidden">
+                <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mb-1 truncate">Total Gross Revenue</p>
+                <p className="text-2xl font-black text-white truncate">TSh {formatMoney(data.total)}</p>
               </div>
             </div>
           )}
 
           {type === 'stock' && (
             <div className="space-y-4">
-              <div className="bg-[#0B172A] p-6 rounded-2xl border border-gray-800">
-                <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mb-1">Total Inventory Value (Cost)</p>
-                <p className="text-2xl font-black text-white">TSh {(data.value || 0).toLocaleString()}</p>
+              <div className="bg-[#0B172A] p-6 rounded-2xl border border-gray-800 min-w-0 overflow-hidden">
+                <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mb-1 truncate">Total Inventory Value (Cost)</p>
+                <p className="text-2xl font-black text-white truncate">TSh {formatMoney(data.value)}</p>
               </div>
-              <div className="bg-[#0B172A] p-6 rounded-2xl border border-gray-800">
-                <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mb-1">Low Stock Items</p>
-                <p className="text-2xl font-black text-orange-400">{data.lowStockCount || 0}</p>
+              <div className="bg-[#0B172A] p-6 rounded-2xl border border-gray-800 min-w-0 overflow-hidden">
+                <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mb-1 truncate">Low Stock Items</p>
+                <p className="text-2xl font-black text-orange-400 truncate">{data.lowStockCount || 0}</p>
               </div>
             </div>
           )}
@@ -1463,18 +1465,18 @@ const ManagerStats = ({
         <motion.div 
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           onClick={() => onShowFinancialDetail('inventory_asset')}
-          className="bg-[#1E293B] p-4 rounded-[24px] border border-gray-800 relative overflow-hidden group shadow-xl cursor-pointer"
+          className="bg-[#1E293B] p-4 rounded-[24px] border border-gray-800 relative overflow-hidden group shadow-xl cursor-pointer min-w-0"
         >
           <div className="absolute top-0 right-0 w-20 h-20 bg-purple-500/5 rounded-full -mr-8 -mt-8 blur-xl group-hover:bg-purple-500/10 transition-all duration-500" />
-          <div className="relative z-10 space-y-2">
-            <div className="bg-purple-500/10 w-8 h-8 rounded-lg flex items-center justify-center text-purple-500">
+          <div className="relative z-10 space-y-2 min-w-0">
+            <div className="bg-purple-500/10 w-8 h-8 rounded-lg flex items-center justify-center text-purple-500 shrink-0">
               <BarChart3 size={16} />
             </div>
-            <div>
-              <p className="text-gray-500 text-[9px] font-bold uppercase tracking-widest mb-0.5">Inventory Asset</p>
-              <div className="flex items-baseline gap-0.5">
-                <span className="text-[10px] font-bold text-purple-900/50">TSh</span>
-                <p className="text-base font-black text-white tracking-tight">{Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short" }).format(stockValue)}</p>
+            <div className="min-w-0">
+              <p className="text-gray-500 text-[9px] font-bold uppercase tracking-widest mb-0.5 truncate">Inventory Asset</p>
+              <div className="flex items-baseline gap-0.5 min-w-0">
+                <span className="text-[10px] font-bold text-purple-900/50 shrink-0">TSh</span>
+                <p className="text-base font-black text-white tracking-tight truncate">{Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short" }).format(stockValue)}</p>
               </div>
             </div>
           </div>
@@ -1485,18 +1487,18 @@ const ManagerStats = ({
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
           onClick={() => onShowFinancialDetail('profit')}
-          className="bg-[#1E293B] p-4 rounded-[24px] border border-gray-800 relative overflow-hidden group shadow-xl cursor-pointer"
+          className="bg-[#1E293B] p-4 rounded-[24px] border border-gray-800 relative overflow-hidden group shadow-xl cursor-pointer min-w-0"
         >
           <div className="absolute top-0 right-0 w-20 h-20 bg-green-500/5 rounded-full -mr-8 -mt-8 blur-xl group-hover:bg-green-500/10 transition-all duration-500" />
-          <div className="relative z-10 space-y-2">
-            <div className="bg-green-500/10 w-8 h-8 rounded-lg flex items-center justify-center text-green-500">
+          <div className="relative z-10 space-y-2 min-w-0">
+            <div className="bg-green-500/10 w-8 h-8 rounded-lg flex items-center justify-center text-green-500 shrink-0">
               <TrendingUp size={16} />
             </div>
-            <div>
-              <p className="text-gray-500 text-[9px] font-bold uppercase tracking-widest mb-0.5">Net Profit</p>
-              <div className="flex items-baseline gap-0.5">
-                <span className="text-[10px] font-bold text-green-900/50">TSh</span>
-                <p className={`text-base font-black tracking-tight ${actualNetProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            <div className="min-w-0">
+              <p className="text-gray-500 text-[9px] font-bold uppercase tracking-widest mb-0.5 truncate">Net Profit</p>
+              <div className="flex items-baseline gap-0.5 min-w-0">
+                <span className="text-[10px] font-bold text-green-900/50 shrink-0">TSh</span>
+                <p className={`text-base font-black tracking-tight truncate ${actualNetProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                   {Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short" }).format(actualNetProfit)}
                 </p>
               </div>
@@ -1509,18 +1511,18 @@ const ManagerStats = ({
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
           onClick={() => onShowFinancialDetail('accounts')}
-          className="bg-[#1E293B] p-4 rounded-[24px] border border-gray-800 relative overflow-hidden group shadow-xl cursor-pointer"
+          className="bg-[#1E293B] p-4 rounded-[24px] border border-gray-800 relative overflow-hidden group shadow-xl cursor-pointer min-w-0"
         >
           <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/5 rounded-full -mr-8 -mt-8 blur-xl group-hover:bg-blue-500/10 transition-all duration-500" />
-          <div className="relative z-10 space-y-2">
-            <div className="bg-blue-500/10 w-8 h-8 rounded-lg flex items-center justify-center text-blue-500">
+          <div className="relative z-10 space-y-2 min-w-0">
+            <div className="bg-blue-500/10 w-8 h-8 rounded-lg flex items-center justify-center text-blue-500 shrink-0">
               <DollarSign size={16} />
             </div>
-            <div>
-              <p className="text-gray-500 text-[9px] font-bold uppercase tracking-widest mb-0.5">Accounts</p>
-              <div className="flex items-baseline gap-0.5">
-                <span className="text-[10px] font-bold text-blue-900/50">TSh</span>
-                <p className={`text-base font-black tracking-tight ${totalCashBank >= 0 ? 'text-blue-400' : 'text-red-400'}`}>
+            <div className="min-w-0">
+              <p className="text-gray-500 text-[9px] font-bold uppercase tracking-widest mb-0.5 truncate">Accounts</p>
+              <div className="flex items-baseline gap-0.5 min-w-0">
+                <span className="text-[10px] font-bold text-blue-900/50 shrink-0">TSh</span>
+                <p className={`text-base font-black tracking-tight truncate ${totalCashBank >= 0 ? 'text-blue-400' : 'text-red-400'}`}>
                   {Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short" }).format(totalCashBank)}
                 </p>
               </div>
@@ -1532,18 +1534,18 @@ const ManagerStats = ({
         <motion.div 
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-[#1E293B] p-4 rounded-[24px] border border-gray-800 relative overflow-hidden group shadow-xl"
+          className="bg-[#1E293B] p-4 rounded-[24px] border border-gray-800 relative overflow-hidden group shadow-xl min-w-0"
         >
           <div className="absolute top-0 right-0 w-20 h-20 bg-red-500/5 rounded-full -mr-8 -mt-8 blur-xl group-hover:bg-red-500/10 transition-all duration-500" />
-          <div className="relative z-10 space-y-2">
-            <div className="bg-red-500/10 w-8 h-8 rounded-lg flex items-center justify-center text-red-500">
+          <div className="relative z-10 space-y-2 min-w-0">
+            <div className="bg-red-500/10 w-8 h-8 rounded-lg flex items-center justify-center text-red-500 shrink-0">
               <AlertTriangle size={16} />
             </div>
-            <div>
-              <p className="text-gray-500 text-[9px] font-bold uppercase tracking-widest mb-0.5">Expired Cost</p>
-              <div className="flex items-baseline gap-0.5">
-                <span className="text-[10px] font-bold text-red-900/50">TSh</span>
-                <p className="text-base font-black tracking-tight text-red-400">
+            <div className="min-w-0">
+              <p className="text-gray-500 text-[9px] font-bold uppercase tracking-widest mb-0.5 truncate">Expired Cost</p>
+              <div className="flex items-baseline gap-0.5 min-w-0">
+                <span className="text-[10px] font-bold text-red-900/50 shrink-0">TSh</span>
+                <p className="text-base font-black tracking-tight text-red-400 truncate">
                   {Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short" }).format(expiredCost)}
                 </p>
               </div>
@@ -7361,30 +7363,30 @@ export default function App() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  const stockValue = useMemo(() => products.reduce((sum, p) => sum + (p.costPrice * p.stock), 0), [products]);
-  const totalExpenses = useMemo(() => expenses.reduce((sum, e) => sum + e.amount, 0), [expenses]);
+  const stockValue = useMemo(() => financialRound(products.reduce((sum, p) => sum + (p.costPrice * p.stock), 0)), [products]);
+  const totalExpenses = useMemo(() => financialRound(expenses.reduce((sum, e) => sum + e.amount, 0)), [expenses]);
   
-  const actualRevenue = useMemo(() => orders.reduce((sum, o) => {
+  const actualRevenue = useMemo(() => financialRound(orders.reduce((sum, o) => {
     if (o.paymentStatus === 'Unpaid' && !user?.includeReceivableInRevenue) return sum;
-    return sum + o.totalCost;
-  }, 0), [orders, user?.includeReceivableInRevenue]);
+    return sum + Number(o.totalCost);
+  }, 0)), [orders, user?.includeReceivableInRevenue]);
   
-  const actualCOGS = useMemo(() => sales.reduce((sum, s) => sum + (s.costPrice * s.quantity), 0), [sales]);
+  const actualCOGS = useMemo(() => financialRound(sales.reduce((sum, s) => sum + (s.costPrice * s.quantity), 0)), [sales]);
   
   const expiredCost = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
-    return products.reduce((sum, p) => {
+    return financialRound(products.reduce((sum, p) => {
       return sum + (p.batches || []).reduce((batchSum, b) => {
         if (b.expiryDate && b.expiryDate < today && b.stock > 0) {
-          return batchSum + (b.stock * b.costPrice);
+          return batchSum + (b.stock * (b.costPrice || p.costPrice || 0));
         }
         return batchSum;
       }, 0);
-    }, 0);
+    }, 0));
   }, [products]);
 
-  const actualVat = useMemo(() => user?.isVatApplicable ? actualRevenue * ((user?.vatRate || 18) / 100) : 0, [actualRevenue, user?.isVatApplicable, user?.vatRate]);
-  const actualNetProfit = useMemo(() => actualRevenue - actualVat - actualCOGS - totalExpenses - expiredCost, [actualRevenue, actualVat, actualCOGS, totalExpenses, expiredCost]);
+  const actualVat = useMemo(() => user?.isVatApplicable ? financialRound(actualRevenue * ((user?.vatRate || 18) / 100)) : 0, [actualRevenue, user?.isVatApplicable, user?.vatRate]);
+  const actualNetProfit = useMemo(() => financialRound(actualRevenue - actualVat - actualCOGS - totalExpenses - expiredCost), [actualRevenue, actualVat, actualCOGS, totalExpenses, expiredCost]);
 
   const accountBalances = useMemo(() => {
     const balances: Record<string, number> = {
