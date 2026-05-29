@@ -3706,7 +3706,7 @@ const CheckoutFlow = ({ isOpen, onClose, cart, isLoaded, onComplete, userName, u
       </div>
 
       {/* Footer Actions */}
-      <div className="fixed bottom-0 left-0 right-0 px-6 py-5 bg-white/80 backdrop-blur-xl border-t border-gray-50 z-20" style={{ top: '224px', height: '98px' }}>
+      <div className="fixed bottom-0 left-0 right-0 px-6 py-5 bg-white/80 backdrop-blur-xl border-t border-gray-50 z-20 flex flex-col" style={{ top: '686px', height: '98px' }}>
         {step === 2 && (
           <button 
             disabled={!selectedTruck}
