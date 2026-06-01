@@ -714,117 +714,163 @@ const FinancialDetailModal = ({ isOpen, onClose, type, data, user, onUpdateUser 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="bg-[#1E293B] w-full max-w-lg rounded-[32px] border border-gray-800 overflow-hidden shadow-2xl"
-      >
-        <div className="p-6 border-b border-gray-800 flex justify-between items-center bg-[#0B172A]">
-          <h3 className="text-xl font-bold text-white capitalize">{type.replace('_', ' ')} Detail</h3>
-          <button onClick={onClose} className="bg-gray-800 p-2 rounded-full text-gray-400 hover:text-white transition-colors">
-            <X size={20} />
-          </button>
-        </div>
+    <AnimatePresence>
+      <div className="fixed inset-0 z-[150] flex items-center justify-center sm:p-4">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="absolute inset-0 bg-black/60 backdrop-blur-md hidden sm:block"
+        />
+        <motion.div 
+          initial={{ x: '100%' }}
+          animate={{ x: 0 }}
+          exit={{ x: '100%' }}
+          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+          className="relative w-full h-full sm:h-auto sm:max-w-xl bg-[#0F172A] sm:bg-[#1E293B] sm:rounded-[32px] sm:border border-gray-800 overflow-hidden shadow-2xl flex flex-col"
+        >
+          {/* Professional Header */}
+          <div className="safe-top bg-[#1E293B] border-b border-gray-800 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
+            <div className="flex items-center gap-4">
+              <button 
+                onClick={onClose}
+                className="p-2 -ml-2 hover:bg-white/5 rounded-full text-gray-400 transition-colors"
+              >
+                <ArrowLeft size={24} />
+              </button>
+              <div>
+                <h3 className="text-xl font-bold text-white tracking-tight capitalize">{type.replace('_', ' ')} Detail</h3>
+                <p className="text-[10px] font-black text-[#0077B6] uppercase tracking-[0.2em]">Financial Intelligence</p>
+              </div>
+            </div>
+            <div className="bg-[#0077B6]/10 p-2.5 rounded-2xl text-[#0077B6] shadow-inner">
+              <BarChart3 size={20} strokeWidth={2.5} />
+            </div>
+          </div>
 
-        <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto overflow-x-hidden">
+          <div className="flex-1 overflow-y-auto no-scrollbar p-6">
+            <div className="space-y-8 max-w-lg mx-auto">
           {type === 'profit' && (
-            <div className="space-y-4">
+            <div className="space-y-6">
+              {/* Summary Card */}
+              <div className="bg-green-500/10 p-8 rounded-[32px] border border-green-500/20 text-center shadow-lg shadow-green-500/5">
+                <p className="text-xs text-green-500 font-black uppercase tracking-[0.2em] mb-2">Net Profit (Final)</p>
+                <p className="text-4xl font-black text-green-400">TSh {formatMoney(data.netProfit)}</p>
+              </div>
+
+              {/* Breakdown Grid */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-[#0B172A] p-4 rounded-2xl border border-gray-800 min-w-0 overflow-hidden">
-                  <p className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest font-bold truncate">Gross Revenue</p>
-                  <p className="font-bold text-white truncate">TSh {formatMoney(data.revenue)}</p>
+                <div className="bg-[#1E293B] sm:bg-[#0B172A] p-5 rounded-3xl border border-gray-800 flex flex-col justify-between h-32">
+                  <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black">Gross Revenue</p>
+                  <p className="font-black text-white text-lg">TSh {formatMoney(data.revenue)}</p>
                 </div>
                 {data.vatApplicable && (
-                  <div className="bg-[#0B172A] p-4 rounded-2xl border border-gray-800 min-w-0 overflow-hidden">
-                    <p className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest font-bold truncate">{data.vatRate}% VAT</p>
-                    <p className="font-bold text-red-400 truncate">-TSh {formatMoney(data.vat)}</p>
+                  <div className="bg-[#1E293B] sm:bg-[#0B172A] p-5 rounded-3xl border border-gray-800 flex flex-col justify-between h-32">
+                    <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black">{data.vatRate}% VAT</p>
+                    <p className="font-black text-red-400 text-lg">-TSh {formatMoney(data.vat)}</p>
                   </div>
                 )}
-                <div className="bg-[#0B172A] p-4 rounded-2xl border border-gray-800 min-w-0 overflow-hidden">
-                  <p className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest font-bold truncate">FIFO COGS</p>
-                  <p className="font-bold text-red-400 truncate">-TSh {formatMoney(data.cogs)}</p>
+                <div className="bg-[#1E293B] sm:bg-[#0B172A] p-5 rounded-3xl border border-gray-800 flex flex-col justify-between h-32">
+                  <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black">FIFO COGS</p>
+                  <p className="font-black text-red-400 text-lg">-TSh {formatMoney(data.cogs)}</p>
                 </div>
-                <div className="bg-[#0B172A] p-4 rounded-2xl border border-gray-800 min-w-0 overflow-hidden">
-                  <p className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest font-bold truncate">OPEX</p>
-                  <p className="font-bold text-red-400 truncate">-TSh {formatMoney(data.opex)}</p>
+                <div className="bg-[#1E293B] sm:bg-[#0B172A] p-5 rounded-3xl border border-gray-800 flex flex-col justify-between h-32">
+                  <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black">OPEX</p>
+                  <p className="font-black text-red-400 text-lg">-TSh {formatMoney(data.opex)}</p>
                 </div>
-                <div className="bg-[#0B172A] p-4 rounded-2xl border border-gray-800 min-w-0 overflow-hidden col-span-2">
-                  <p className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest font-bold truncate">Expired Products</p>
-                  <p className="font-bold text-red-400 truncate">-TSh {formatMoney(data.expiredCost)}</p>
+                <div className="bg-[#1E293B] sm:bg-[#0B172A] p-5 rounded-3xl border border-gray-800 flex flex-col justify-between h-32 col-span-2">
+                  <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black">Expired Products</p>
+                  <p className="font-black text-red-400 text-lg">-TSh {formatMoney(data.expiredCost)}</p>
                 </div>
-              </div>
-              <div className="bg-green-500/10 p-6 rounded-2xl border border-green-500/20 min-w-0 overflow-hidden">
-                <p className="text-xs text-green-500 font-bold uppercase tracking-widest mb-1 truncate">Net Profit (Final)</p>
-                <p className="text-3xl font-black text-green-400 truncate">TSh {formatMoney(data.netProfit)}</p>
               </div>
             </div>
           )}
 
           {type === 'inventory_asset' && data.products && (
-            <div className="space-y-4">
-              <div className="bg-[#0B172A] p-6 rounded-2xl border border-gray-800 min-w-0 overflow-hidden">
-                <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mb-1 truncate">Total Inventory Value</p>
-                <p className="text-3xl font-black text-white truncate">TSh {formatMoney(data.value)}</p>
-                <p className="text-[10px] text-gray-500 mt-2 truncate">Calculated as: Current Stock × Cost Price</p>
+            <div className="space-y-6">
+              <div className="bg-[#1E293B] sm:bg-[#0B172A] p-8 rounded-[32px] border border-gray-800 text-center shadow-xl">
+                <p className="text-xs text-gray-500 font-black uppercase tracking-[0.2em] mb-2">Total Asset Value</p>
+                <p className="text-4xl font-black text-white">TSh {formatMoney(data.value)}</p>
+                <p className="text-[10px] text-gray-600 mt-4 uppercase tracking-widest font-bold">Based on Current Stock × Cost Price</p>
               </div>
               
-              <h4 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em] ml-1">Asset Breakdown</h4>
-              <div className="space-y-2">
-                {data.products.map((p) => (
-                  <div key={p.id} className="flex justify-between items-center bg-[#0B172A] p-4 rounded-2xl border border-gray-800/50 min-w-0 overflow-hidden">
-                    <div className="min-w-0 flex-1 mr-4">
-                      <p className="font-bold text-white text-sm truncate">{p.name}</p>
-                      <p className="text-[10px] text-gray-500 truncate">{p.stock} units @ TSh {formatMoney(p.costPrice)}</p>
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] ml-2">Stock Inventory Assets</h4>
+                <div className="space-y-3">
+                  {data.products.map((p) => (
+                    <div key={p.id} className="flex justify-between items-center bg-[#1E293B] sm:bg-[#0B172A] p-5 rounded-[24px] border border-gray-800/50">
+                      <div className="min-w-0 flex-1 mr-4">
+                        <p className="font-bold text-white text-base leading-tight truncate">{p.name}</p>
+                        <p className="text-[10px] text-gray-500 mt-1 uppercase font-black tracking-tighter">
+                          {p.stock} units @ TSh {formatMoney(p.costPrice)}
+                        </p>
+                      </div>
+                      <p className="font-black text-white text-lg shrink-0">TSh {formatMoney(p.stock * p.costPrice)}</p>
                     </div>
-                    <p className="font-black text-white text-sm shrink-0">TSh {formatMoney(p.stock * p.costPrice)}</p>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           )}
 
           {type === 'accounts' && data.balances && (
-            <div className="space-y-4">
-              <div className="bg-[#0B172A] p-6 rounded-2xl border border-gray-800 min-w-0 overflow-hidden">
-                <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mb-1 truncate">Total Cash & Bank</p>
-                <p className={`text-3xl font-black truncate ${Number(data.total) >= 0 ? 'text-blue-400' : 'text-red-400'}`}>
+            <div className="space-y-6">
+              {/* Summary Card */}
+              <div className={`${Number(data.total) >= 0 ? 'bg-blue-500/10 border-blue-500/20' : 'bg-red-500/10 border-red-500/20'} p-8 rounded-[32px] border text-center shadow-lg`}>
+                <p className={`text-xs ${Number(data.total) >= 0 ? 'text-blue-500' : 'text-red-500'} font-black uppercase tracking-[0.2em] mb-2`}>Total Cash & Bank</p>
+                <p className={`text-4xl font-black ${Number(data.total) >= 0 ? 'text-blue-400' : 'text-red-400'}`}>
                   TSh {formatMoney(data.total)}
                 </p>
               </div>
               
-              <h4 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em] ml-1">Account Balances</h4>
-              <div className="space-y-2">
-                {Object.entries(data.balances).map(([account, balance]) => (
-                  <div key={account} className="flex justify-between items-center bg-[#0B172A] p-4 rounded-2xl border border-gray-800/50 min-w-0 overflow-hidden">
-                    <div className="flex items-center gap-3 min-w-0 flex-1 mr-4">
-                      <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-500 shrink-0">
-                        <DollarSign size={18} />
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] ml-2">Liquidity Breakdown</h4>
+                <div className="space-y-3">
+                  {Object.entries(data.balances).map(([account, balance]) => (
+                    <div key={account} className="flex justify-between items-center bg-[#1E293B] sm:bg-[#0B172A] p-5 rounded-[24px] border border-gray-800/50 hover:border-gray-700 transition-all group">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 ${Number(balance) >= 0 ? 'bg-blue-500/10 text-blue-500' : 'bg-red-500/10 text-red-500'} rounded-[18px] flex items-center justify-center transition-transform group-hover:scale-110`}>
+                          <DollarSign size={22} strokeWidth={2.5} />
+                        </div>
+                        <div>
+                          <p className="font-bold text-white text-base leading-tight">{account}</p>
+                          <p className="text-[10px] text-gray-500 uppercase font-black tracking-tighter">Account Asset</p>
+                        </div>
                       </div>
-                      <p className="font-bold text-white truncate">{account}</p>
+                      <p className={`font-black text-lg ${Number(balance) >= 0 ? 'text-white' : 'text-red-400'}`}>
+                        TSh {formatMoney(balance)}
+                      </p>
                     </div>
-                    <p className={`font-black text-sm shrink-0 ${Number(balance) >= 0 ? 'text-white' : 'text-red-400'}`}>
-                      TSh {formatMoney(balance)}
-                    </p>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
+
+              {/* Insight Message */}
+              {Number(data.total) < 0 && (
+                <div className="bg-red-500/5 border border-red-500/10 p-4 rounded-2xl flex items-start gap-3">
+                  <AlertTriangle size={18} className="text-red-500 shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-red-400 leading-relaxed">
+                    Your account balance is negative. This usually means expenses recorded exceed the total paid sales. Check for unpaid orders or high OPEX.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
           {type === 'expenses' && data.categories && (
-            <div className="space-y-4">
-              <h4 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em]">Top Expense Categories</h4>
-              <div className="space-y-2">
+            <div className="space-y-6">
+              <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] ml-2">Category Concentration</h4>
+              <div className="space-y-3">
                 {data.categories.map((cat, idx) => (
-                  <div key={idx} className="flex justify-between items-center bg-[#0B172A] p-4 rounded-2xl border border-gray-800/50 min-w-0 overflow-hidden">
-                    <div className="flex items-center gap-3 min-w-0 flex-1 mr-4">
-                      <div className="w-10 h-10 bg-red-500/10 rounded-xl flex items-center justify-center text-red-500 shrink-0">
-                        <ArrowLeft size={18} className="rotate-45" />
+                  <div key={idx} className="flex justify-between items-center bg-[#1E293B] sm:bg-[#0B172A] p-5 rounded-[24px] border border-gray-800/50">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-red-500/10 text-red-500 rounded-[18px] flex items-center justify-center">
+                        <ArrowLeft size={22} className="rotate-45" strokeWidth={2.5} />
                       </div>
-                      <p className="font-bold text-white truncate">{cat.name}</p>
+                      <p className="font-bold text-white text-base leading-tight">{cat.name}</p>
                     </div>
-                    <p className="font-black text-white shrink-0">TSh {formatMoney(cat.amount)}</p>
+                    <p className="font-black text-white text-lg shrink-0">TSh {formatMoney(cat.amount)}</p>
                   </div>
                 ))}
               </div>
@@ -832,61 +878,63 @@ const FinancialDetailModal = ({ isOpen, onClose, type, data, user, onUpdateUser 
           )}
 
           {type === 'revenue' && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-green-500/10 p-6 rounded-2xl border border-green-500/20 min-w-0 overflow-hidden">
-                  <p className="text-[10px] text-green-500 font-bold uppercase tracking-widest mb-1 truncate">Cash in Hand</p>
-                  <p className="text-xl font-black text-green-400 truncate">TSh {formatMoney(data.cash)}</p>
+            <div className="space-y-6">
+              <div className="bg-[#1E293B] sm:bg-[#0B172A] p-8 rounded-[32px] border border-gray-800 text-center shadow-xl">
+                <p className="text-xs text-gray-500 font-black uppercase tracking-[0.2em] mb-2">Gross Revenue</p>
+                <p className="text-4xl font-black text-white">TSh {formatMoney(data.total)}</p>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                <div className="bg-green-500/10 p-6 rounded-3xl border border-green-500/20 flex justify-between items-center">
+                  <p className="text-xs text-green-500 font-black uppercase tracking-widest">Cash in Hand</p>
+                  <p className="text-xl font-black text-green-400">TSh {formatMoney(data.cash)}</p>
                 </div>
-                <div className="bg-blue-500/10 p-6 rounded-2xl border border-blue-500/20 min-w-0 overflow-hidden">
-                  <p className="text-[10px] text-blue-500 font-bold uppercase tracking-widest mb-1 truncate">Mobile Money</p>
-                  <p className="text-xl font-black text-blue-400 truncate">TSh {formatMoney(data.mobile)}</p>
+                <div className="bg-blue-500/10 p-6 rounded-3xl border border-blue-500/20 flex justify-between items-center">
+                  <p className="text-xs text-blue-500 font-black uppercase tracking-widest">Mobile Money</p>
+                  <p className="text-xl font-black text-blue-400">TSh {formatMoney(data.mobile)}</p>
                 </div>
-                <div className="bg-purple-500/10 p-6 rounded-2xl border border-purple-500/20 min-w-0 overflow-hidden">
-                  <p className="text-[10px] text-purple-500 font-bold uppercase tracking-widest mb-1 truncate">Card / Bank</p>
-                  <p className="text-xl font-black text-purple-400 truncate">TSh {formatMoney(data.card)}</p>
+                <div className="bg-purple-500/10 p-6 rounded-3xl border border-purple-500/20 flex justify-between items-center">
+                  <p className="text-xs text-purple-500 font-black uppercase tracking-widest">Card / Bank</p>
+                  <p className="text-xl font-black text-purple-400">TSh {formatMoney(data.card)}</p>
                 </div>
-                <div className="bg-orange-500/10 p-6 rounded-2xl border border-orange-500/20 relative group min-w-0 overflow-hidden">
-                  <div className="flex justify-between items-start mb-1 gap-2">
-                    <p className="text-[10px] text-orange-500 font-bold uppercase tracking-widest truncate">Accounts Receivable</p>
+                <div className="bg-orange-500/10 p-6 rounded-3xl border border-orange-500/20 relative">
+                  <div className="flex justify-between items-center mb-1">
+                    <p className="text-xs text-orange-500 font-black uppercase tracking-widest">Receivables</p>
                     {onUpdateUser && user && (
                       <button 
                         onClick={() => onUpdateUser({ includeReceivableInRevenue: !user.includeReceivableInRevenue })}
-                        className={`w-8 h-4 rounded-full relative transition-colors duration-200 shrink-0 ${user.includeReceivableInRevenue ? 'bg-orange-500' : 'bg-gray-700'}`}
+                        className={`w-10 h-5 rounded-full relative transition-colors duration-200 ${user.includeReceivableInRevenue ? 'bg-orange-500' : 'bg-gray-700'}`}
                       >
-                        <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all duration-200 ${user.includeReceivableInRevenue ? 'left-[18px]' : 'left-[2px]'}`} />
+                        <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all duration-200 ${user.includeReceivableInRevenue ? 'left-[22px]' : 'left-[2px]'}`} />
                       </button>
                     )}
                   </div>
-                  <p className="text-xl font-black text-orange-400 truncate">TSh {formatMoney(data.credit)}</p>
-                  <p className="text-[8px] text-orange-500/50 mt-1 font-bold uppercase tracking-tighter truncate">
-                    {user?.includeReceivableInRevenue ? 'Included in Gross Revenue' : 'Excluded from Gross Revenue'}
-                  </p>
+                  <div className="flex justify-between items-center">
+                    <p className="text-[9px] text-orange-500/60 uppercase font-black">Credit Sales</p>
+                    <p className="text-xl font-black text-orange-400">TSh {formatMoney(data.credit)}</p>
+                  </div>
                 </div>
-              </div>
-              <div className="bg-[#0B172A] p-6 rounded-2xl border border-gray-800 min-w-0 overflow-hidden">
-                <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mb-1 truncate">Total Gross Revenue</p>
-                <p className="text-2xl font-black text-white truncate">TSh {formatMoney(data.total)}</p>
               </div>
             </div>
           )}
 
           {type === 'stock' && (
-            <div className="space-y-4">
-              <div className="bg-[#0B172A] p-6 rounded-2xl border border-gray-800 min-w-0 overflow-hidden">
-                <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mb-1 truncate">Total Inventory Value (Cost)</p>
-                <p className="text-2xl font-black text-white truncate">TSh {formatMoney(data.value)}</p>
+            <div className="space-y-6">
+              <div className="bg-[#1E293B] sm:bg-[#0B172A] p-8 rounded-[32px] border border-gray-800 text-center shadow-xl">
+                <p className="text-xs text-gray-500 font-black uppercase tracking-[0.2em] mb-2">Inventory Assets</p>
+                <p className="text-4xl font-black text-white">TSh {formatMoney(data.value)}</p>
               </div>
-              <div className="bg-[#0B172A] p-6 rounded-2xl border border-gray-800 min-w-0 overflow-hidden">
-                <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mb-1 truncate">Low Stock Items</p>
-                <p className="text-2xl font-black text-orange-400 truncate">{data.lowStockCount || 0}</p>
+              <div className="bg-orange-500/10 p-8 rounded-[32px] border border-orange-500/20 text-center">
+                <p className="text-xs text-orange-500 font-black uppercase tracking-[0.2em] mb-2">Low Stock Items</p>
+                <p className="text-4xl font-black text-orange-400">{data.lowStockCount || 0}</p>
               </div>
             </div>
           )}
         </div>
       </motion.div>
     </div>
-  );
+  </AnimatePresence>
+);
 };
 
 const PermissionBanner = () => {
@@ -6013,14 +6061,14 @@ const ManagerDashboard = ({ user, setUser, products, setProducts, sales, orders,
   };
 
   return (
-    <div className="py-6 space-y-8 pb-24 px-0 sm:px-6">
+    <div className="py-6 space-y-8 pb-24 px-0 sm:px-6 bg-[#1e293b]">
       <div className="px-6 sm:px-0">
         <PermissionBanner />
       </div>
       <div className="flex justify-between items-center px-6 sm:px-0">
         <div>
-          <h1 className="text-2xl font-bold text-black">Store Manager</h1>
-          <p className="text-black">Inventory & Sales Overview</p>
+          <h1 className="text-2xl font-bold text-white">Store Manager</h1>
+          <p className="text-[#d9d9d9]">Inventory & Sales Overview</p>
         </div>
         <button 
           onClick={handleOpenAdd}
@@ -6053,7 +6101,7 @@ const ManagerDashboard = ({ user, setUser, products, setProducts, sales, orders,
           </div>
 
           {/* Category Filter Chips */}
-          <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar scroll-smooth">
+          <div className="flex gap-2 overflow-x-auto pt-[18px] pb-[18px] no-scrollbar scroll-smooth">
             {['All', ...Object.keys(CATEGORIES)].map(cat => (
               <button
                 key={cat}
@@ -7406,8 +7454,13 @@ export default function App() {
         if (key) balances[key] -= Number(e.amount);
       }
     });
+    // Subtract received inventory costs from cash balance
+    purchaseOrders.filter(po => po.status === 'Received').forEach(po => {
+      // For now, assume inventory is paid in cash unless we add paymentMode to POs
+      balances[ACCOUNT_CATEGORIES.CASH] -= Number(po.totalAmount || 0);
+    });
     return balances;
-  }, [orders, expenses, user?.includeReceivableInRevenue]);
+  }, [orders, expenses, purchaseOrders, user?.includeReceivableInRevenue]);
 
   const totalCashBank = useMemo(() => Object.values(accountBalances).reduce((a: number, b: number) => a + b, 0), [accountBalances]);
 
@@ -8760,112 +8813,185 @@ const AppLayout = ({
               }
             />
 
-            {/* Expense Modal */}
+            {/* Expense Modal - Full Screen Mobile Experience */}
             <AnimatePresence>
               {showExpenseModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    onClick={() => setShowExpenseModal(false)}
-                    className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                  />
-                  <motion.div
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.9, opacity: 0 }}
-                    className="relative w-full max-w-md bg-[#1E293B] rounded-[32px] border border-gray-800 shadow-2xl overflow-hidden"
-                  >
-                    <div className="p-6 space-y-6">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-3">
-                          <div className="bg-[#0077B6]/10 p-2 rounded-xl text-[#0077B6]">
-                            <DollarSign size={24} />
-                          </div>
-                          <h3 className="text-xl font-bold text-white">Record Expense</h3>
-                        </div>
-                        <button onClick={() => setShowExpenseModal(false)} className="p-2 hover:bg-white/10 rounded-full text-gray-400">
-                          <X size={20} />
-                        </button>
-                      </div>
-
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Description</label>
-                          <input
-                            type="text"
-                            placeholder="e.g. Shop Rent"
-                            value={expenseFormData.description}
-                            onChange={e => setExpenseFormData((prev: any) => ({ ...prev, description: e.target.value }))}
-                            className="w-full bg-[#0F172A] border border-gray-800 rounded-xl px-4 py-3 text-white focus:border-[#0077B6] outline-none"
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Amount (TSh)</label>
-                            <input
-                              type="number"
-                              value={expenseFormData.amount || ''}
-                              onChange={e => setExpenseFormData((prev: any) => ({ ...prev, amount: Number(e.target.value) }))}
-                              className="w-full bg-[#0F172A] border border-gray-800 rounded-xl px-4 py-3 text-white focus:border-[#0077B6] outline-none"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Category</label>
-                            <select
-                              value={expenseFormData.category}
-                              onChange={e => setExpenseFormData((prev: any) => ({ ...prev, category: e.target.value }))}
-                              className="w-full bg-[#0F172A] border border-gray-800 rounded-xl px-4 py-3 text-white focus:border-[#0077B6] outline-none"
-                            >
-                              {EXPENSE_CATEGORIES.map(cat => (
-                                <option key={cat} value={cat}>{cat}</option>
-                              ))}
-                            </select>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Date</label>
-                            <input
-                              type="date"
-                              value={expenseFormData.date}
-                              onChange={e => setExpenseFormData((prev: any) => ({ ...prev, date: e.target.value }))}
-                              className="w-full bg-[#0F172A] border border-gray-800 rounded-xl px-4 py-3 text-white focus:border-[#0077B6] outline-none"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Payment Mode</label>
-                            <select
-                              value={expenseFormData.paymentMode}
-                              onChange={e => setExpenseFormData((prev: any) => ({ ...prev, paymentMode: e.target.value }))}
-                              className="w-full bg-[#0F172A] border border-gray-800 rounded-xl px-4 py-3 text-white focus:border-[#0077B6] outline-none"
-                            >
-                              {PAYMENT_METHODS.map(pm => (
-                                <option key={pm.id} value={pm.id}>{pm.name}</option>
-                              ))}
-                            </select>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-3 pt-2">
-                        <button
-                          onClick={() => setShowExpenseModal(false)}
-                          className="flex-1 py-4 rounded-xl border border-gray-800 text-gray-400 font-bold hover:bg-white/5"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={handleSaveExpense}
-                          className="flex-1 bg-[#0077B6] text-white py-4 rounded-xl font-bold hover:bg-[#005f8a] transition-all"
-                        >
-                          Save Expense
-                        </button>
+                <motion.div
+                  initial={{ x: '100%' }}
+                  animate={{ x: 0 }}
+                  exit={{ x: '100%' }}
+                  transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                  className="fixed inset-0 z-[100] bg-[#0F172A] flex flex-col"
+                >
+                  {/* Modern Header */}
+                  <div className="safe-top bg-[#1E293B] border-b border-gray-800 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
+                    <div className="flex items-center gap-4">
+                      <button 
+                        onClick={() => setShowExpenseModal(false)}
+                        className="p-2 -ml-2 hover:bg-white/5 rounded-full text-gray-400 transition-colors"
+                      >
+                        <ArrowLeft size={24} />
+                      </button>
+                      <div>
+                        <h3 className="text-xl font-bold text-white tracking-tight">Record Expense</h3>
+                        <p className="text-[10px] font-black text-[#0077B6] uppercase tracking-[0.2em]">Financial Tracking</p>
                       </div>
                     </div>
-                  </motion.div>
-                </div>
+                    <div className="bg-[#0077B6]/10 p-2.5 rounded-2xl text-[#0077B6] shadow-inner">
+                      <DollarSign size={20} strokeWidth={2.5} />
+                    </div>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto no-scrollbar">
+                    <div className="p-6 space-y-8 max-w-2xl mx-auto">
+                      {/* Expense Form Section */}
+                      <section className="bg-[#1E293B] rounded-[32px] p-6 border border-gray-800 shadow-xl space-y-6">
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Description</label>
+                            <div className="relative group">
+                              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-[#0077B6] transition-colors">
+                                <FileText size={18} />
+                              </div>
+                              <input
+                                type="text"
+                                placeholder="What was this for?"
+                                value={expenseFormData.description}
+                                onChange={e => setExpenseFormData((prev: any) => ({ ...prev, description: e.target.value }))}
+                                className="w-full bg-[#0B172A] border border-gray-800 rounded-2xl pl-12 pr-4 py-4 text-white placeholder:text-gray-600 focus:border-[#0077B6] focus:ring-4 focus:ring-[#0077B6]/10 outline-none transition-all"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Amount (TSh)</label>
+                              <div className="relative group">
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-[#0077B6] transition-colors font-bold">
+                                  $
+                                </div>
+                                <input
+                                  type="number"
+                                  placeholder="0.00"
+                                  value={expenseFormData.amount || ''}
+                                  onChange={e => setExpenseFormData((prev: any) => ({ ...prev, amount: Number(e.target.value) }))}
+                                  className="w-full bg-[#0B172A] border border-gray-800 rounded-2xl pl-12 pr-4 py-4 text-white focus:border-[#0077B6] focus:ring-4 focus:ring-[#0077B6]/10 outline-none transition-all font-mono text-lg"
+                                />
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Category</label>
+                              <div className="relative">
+                                <select
+                                  value={expenseFormData.category}
+                                  onChange={e => setExpenseFormData((prev: any) => ({ ...prev, category: e.target.value }))}
+                                  className="w-full bg-[#0B172A] border border-gray-800 rounded-2xl px-4 py-4 text-white focus:border-[#0077B6] outline-none appearance-none cursor-pointer"
+                                >
+                                  {EXPENSE_CATEGORIES.map(cat => (
+                                    <option key={cat} value={cat}>{cat}</option>
+                                  ))}
+                                </select>
+                                <ChevronDown size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Date</label>
+                              <div className="relative">
+                                <Calendar size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
+                                <input
+                                  type="date"
+                                  value={expenseFormData.date}
+                                  onChange={e => setExpenseFormData((prev: any) => ({ ...prev, date: e.target.value }))}
+                                  className="w-full bg-[#0B172A] border border-gray-800 rounded-2xl pl-12 pr-4 py-4 text-white focus:border-[#0077B6] outline-none"
+                                />
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Payment Mode</label>
+                              <div className="relative">
+                                <select
+                                  value={expenseFormData.paymentMode}
+                                  onChange={e => setExpenseFormData((prev: any) => ({ ...prev, paymentMode: e.target.value }))}
+                                  className="w-full bg-[#0B172A] border border-gray-800 rounded-2xl px-4 py-4 text-white focus:border-[#0077B6] outline-none appearance-none cursor-pointer"
+                                >
+                                  {PAYMENT_METHODS.map(pm => (
+                                    <option key={pm.id} value={pm.id}>{pm.name}</option>
+                                  ))}
+                                </select>
+                                <ChevronDown size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={handleSaveExpense}
+                          className="w-full bg-[#0077B6] text-white py-5 rounded-[20px] font-black uppercase tracking-widest hover:bg-[#005f8a] active:scale-[0.98] transition-all shadow-lg shadow-[#0077B6]/20"
+                        >
+                          Confirm & Save Expense
+                        </button>
+                      </section>
+
+                      {/* Recent Expenses List Section */}
+                      <section className="space-y-4">
+                        <div className="flex items-center justify-between px-2">
+                          <h4 className="text-sm font-black text-white uppercase tracking-widest">Recent Activity</h4>
+                          <span className="text-[10px] font-bold text-gray-500">{expenses.length} Records</span>
+                        </div>
+                        
+                        <div className="space-y-3">
+                          {expenses.length === 0 ? (
+                            <div className="bg-[#1E293B] rounded-[24px] p-8 border border-gray-800 border-dashed text-center">
+                              <p className="text-gray-500 text-sm">No expenses recorded yet.</p>
+                            </div>
+                          ) : (
+                            [...expenses].reverse().slice(0, 5).map((exp: any) => (
+                              <motion.div
+                                key={exp.id}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="bg-[#1E293B] rounded-[24px] p-4 border border-gray-800 flex items-center justify-between group hover:border-gray-700 transition-colors"
+                              >
+                                <div className="flex items-center gap-4">
+                                  <div className="bg-[#0F172A] p-3 rounded-2xl text-gray-400 group-hover:text-red-400 transition-colors">
+                                    <TrendingUp size={20} className="rotate-180" />
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-bold text-white leading-tight">{exp.description}</p>
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">{exp.category}</span>
+                                      <span className="w-1 h-1 rounded-full bg-gray-800" />
+                                      <span className="text-[10px] font-medium text-gray-500">{new Date(exp.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-sm font-black text-white">-{Number(exp.amount).toLocaleString()}</p>
+                                  <p className="text-[10px] font-bold text-gray-600 uppercase tracking-tighter">{exp.paymentMode}</p>
+                                </div>
+                              </motion.div>
+                            ))
+                          )}
+                          
+                          {expenses.length > 5 && (
+                            <button 
+                              onClick={() => {
+                                setShowExpenseModal(false);
+                                setShowExpensesDashboardModal(true);
+                              }}
+                              className="w-full py-3 text-xs font-bold text-gray-500 hover:text-[#0077B6] transition-colors"
+                            >
+                              View All Transaction History
+                            </button>
+                          )}
+                        </div>
+                      </section>
+                    </div>
+                  </div>
+                </motion.div>
               )}
             </AnimatePresence>
 
