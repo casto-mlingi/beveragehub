@@ -5702,7 +5702,7 @@ const ManagerDashboard = ({ user, setUser, products, setProducts, sales, orders,
     
     // Category Filter
     if (inventoryFilter !== 'All') {
-      result = result.filter(p => p.category === inventoryFilter);
+      result = result.filter(p => p.category === inventoryFilter || (p.category && p.category.startsWith(`${inventoryFilter} > `)));
     }
 
     // Sorting
@@ -6016,11 +6016,6 @@ const ManagerDashboard = ({ user, setUser, products, setProducts, sales, orders,
     <div className="py-6 space-y-8 pb-24 px-0 sm:px-6">
       <div className="px-6 sm:px-0">
         <PermissionBanner />
-        <UserGuideBanner 
-          role="manager"
-          title="Store Management" 
-          description="Manage your store's core operations here. Add or edit products, record operational expenses, manage your vendor list, and generate purchase orders for restocking." 
-        />
       </div>
       <div className="flex justify-between items-center px-6 sm:px-0">
         <div>
@@ -6059,7 +6054,7 @@ const ManagerDashboard = ({ user, setUser, products, setProducts, sales, orders,
 
           {/* Category Filter Chips */}
           <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar scroll-smooth">
-            {Object.keys(CATEGORIES).map(cat => (
+            {['All', ...Object.keys(CATEGORIES)].map(cat => (
               <button
                 key={cat}
                 onClick={() => setInventoryFilter(cat)}
@@ -7856,7 +7851,12 @@ export default function App() {
     };
 
     console.log("[SSE] Setting up EventSource and setInterval. User context:", user?.uid || 'guest');
-    fetchData(true);
+    
+    // Debounce initial fetch to avoid ERR_ABORTED in StrictMode/rapid mounts
+    const fetchTimeout = setTimeout(() => {
+      fetchData(true);
+    }, 100);
+
     const interval = setInterval(() => {
       // Only poll if tab is visible and not already fetching
       if (document.visibilityState === 'visible') {
@@ -7941,6 +7941,7 @@ export default function App() {
 
     return () => {
       console.log("[SSE] Cleaning up EventSource and interval");
+      clearTimeout(fetchTimeout);
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
