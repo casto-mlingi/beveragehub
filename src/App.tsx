@@ -751,190 +751,191 @@ const FinancialDetailModal = ({ isOpen, onClose, type, data, user, onUpdateUser 
 
           <div className="flex-1 overflow-y-auto no-scrollbar p-6">
             <div className="space-y-8 max-w-lg mx-auto">
-          {type === 'profit' && (
-            <div className="space-y-6">
-              {/* Summary Card */}
-              <div className="bg-green-500/10 p-8 rounded-[32px] border border-green-500/20 text-center shadow-lg shadow-green-500/5">
-                <p className="text-xs text-green-500 font-black uppercase tracking-[0.2em] mb-2">Net Profit (Final)</p>
-                <p className="text-4xl font-black text-green-400">TSh {formatMoney(data.netProfit)}</p>
-              </div>
-
-              {/* Breakdown Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-[#1E293B] sm:bg-[#0B172A] p-5 rounded-3xl border border-gray-800 flex flex-col justify-between h-32">
-                  <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black">Gross Revenue</p>
-                  <p className="font-black text-white text-lg">TSh {formatMoney(data.revenue)}</p>
-                </div>
-                {data.vatApplicable && (
-                  <div className="bg-[#1E293B] sm:bg-[#0B172A] p-5 rounded-3xl border border-gray-800 flex flex-col justify-between h-32">
-                    <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black">{data.vatRate}% VAT</p>
-                    <p className="font-black text-red-400 text-lg">-TSh {formatMoney(data.vat)}</p>
+              {type === 'profit' && (
+                <div className="space-y-6">
+                  {/* Summary Card */}
+                  <div className="bg-green-500/10 p-8 rounded-[32px] border border-green-500/20 text-center shadow-lg shadow-green-500/5">
+                    <p className="text-xs text-green-500 font-black uppercase tracking-[0.2em] mb-2">Net Profit (Final)</p>
+                    <p className="text-4xl font-black text-green-400">TSh {formatMoney(data.netProfit)}</p>
                   </div>
-                )}
-                <div className="bg-[#1E293B] sm:bg-[#0B172A] p-5 rounded-3xl border border-gray-800 flex flex-col justify-between h-32">
-                  <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black">FIFO COGS</p>
-                  <p className="font-black text-red-400 text-lg">-TSh {formatMoney(data.cogs)}</p>
-                </div>
-                <div className="bg-[#1E293B] sm:bg-[#0B172A] p-5 rounded-3xl border border-gray-800 flex flex-col justify-between h-32">
-                  <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black">OPEX</p>
-                  <p className="font-black text-red-400 text-lg">-TSh {formatMoney(data.opex)}</p>
-                </div>
-                <div className="bg-[#1E293B] sm:bg-[#0B172A] p-5 rounded-3xl border border-gray-800 flex flex-col justify-between h-32 col-span-2">
-                  <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black">Expired Products</p>
-                  <p className="font-black text-red-400 text-lg">-TSh {formatMoney(data.expiredCost)}</p>
-                </div>
-              </div>
-            </div>
-          )}
 
-          {type === 'inventory_asset' && data.products && (
-            <div className="space-y-6">
-              <div className="bg-[#1E293B] sm:bg-[#0B172A] p-8 rounded-[32px] border border-gray-800 text-center shadow-xl">
-                <p className="text-xs text-gray-500 font-black uppercase tracking-[0.2em] mb-2">Total Asset Value</p>
-                <p className="text-4xl font-black text-white">TSh {formatMoney(data.value)}</p>
-                <p className="text-[10px] text-gray-600 mt-4 uppercase tracking-widest font-bold">Based on Current Stock × Cost Price</p>
-              </div>
-              
-              <div className="space-y-4">
-                <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] ml-2">Stock Inventory Assets</h4>
-                <div className="space-y-3">
-                  {data.products.map((p) => (
-                    <div key={p.id} className="flex justify-between items-center bg-[#1E293B] sm:bg-[#0B172A] p-5 rounded-[24px] border border-gray-800/50">
-                      <div className="min-w-0 flex-1 mr-4">
-                        <p className="font-bold text-white text-base leading-tight truncate">{p.name}</p>
-                        <p className="text-[10px] text-gray-500 mt-1 uppercase font-black tracking-tighter">
-                          {p.stock} units @ TSh {formatMoney(p.costPrice)}
-                        </p>
-                      </div>
-                      <p className="font-black text-white text-lg shrink-0">TSh {formatMoney(p.stock * p.costPrice)}</p>
+                  {/* Breakdown Grid */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-[#1E293B] sm:bg-[#0B172A] p-5 rounded-3xl border border-gray-800 flex flex-col justify-between h-32">
+                      <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black">Gross Revenue</p>
+                      <p className="font-black text-white text-lg">TSh {formatMoney(data.revenue)}</p>
                     </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {type === 'accounts' && data.balances && (
-            <div className="space-y-6">
-              {/* Summary Card */}
-              <div className={`${Number(data.total) >= 0 ? 'bg-blue-500/10 border-blue-500/20' : 'bg-red-500/10 border-red-500/20'} p-8 rounded-[32px] border text-center shadow-lg`}>
-                <p className={`text-xs ${Number(data.total) >= 0 ? 'text-blue-500' : 'text-red-500'} font-black uppercase tracking-[0.2em] mb-2`}>Total Cash & Bank</p>
-                <p className={`text-4xl font-black ${Number(data.total) >= 0 ? 'text-blue-400' : 'text-red-400'}`}>
-                  TSh {formatMoney(data.total)}
-                </p>
-              </div>
-              
-              <div className="space-y-4">
-                <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] ml-2">Liquidity Breakdown</h4>
-                <div className="space-y-3">
-                  {Object.entries(data.balances).map(([account, balance]) => (
-                    <div key={account} className="flex justify-between items-center bg-[#1E293B] sm:bg-[#0B172A] p-5 rounded-[24px] border border-gray-800/50 hover:border-gray-700 transition-all group">
-                      <div className="flex items-center gap-4">
-                        <div className={`w-12 h-12 ${Number(balance) >= 0 ? 'bg-blue-500/10 text-blue-500' : 'bg-red-500/10 text-red-500'} rounded-[18px] flex items-center justify-center transition-transform group-hover:scale-110`}>
-                          <DollarSign size={22} strokeWidth={2.5} />
-                        </div>
-                        <div>
-                          <p className="font-bold text-white text-base leading-tight">{account}</p>
-                          <p className="text-[10px] text-gray-500 uppercase font-black tracking-tighter">Account Asset</p>
-                        </div>
+                    {data.vatApplicable && (
+                      <div className="bg-[#1E293B] sm:bg-[#0B172A] p-5 rounded-3xl border border-gray-800 flex flex-col justify-between h-32">
+                        <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black">{data.vatRate}% VAT</p>
+                        <p className="font-black text-red-400 text-lg">-TSh {formatMoney(data.vat)}</p>
                       </div>
-                      <p className={`font-black text-lg ${Number(balance) >= 0 ? 'text-white' : 'text-red-400'}`}>
-                        TSh {formatMoney(balance)}
+                    )}
+                    <div className="bg-[#1E293B] sm:bg-[#0B172A] p-5 rounded-3xl border border-gray-800 flex flex-col justify-between h-32">
+                      <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black">FIFO COGS</p>
+                      <p className="font-black text-red-400 text-lg">-TSh {formatMoney(data.cogs)}</p>
+                    </div>
+                    <div className="bg-[#1E293B] sm:bg-[#0B172A] p-5 rounded-3xl border border-gray-800 flex flex-col justify-between h-32">
+                      <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black">OPEX</p>
+                      <p className="font-black text-red-400 text-lg">-TSh {formatMoney(data.opex)}</p>
+                    </div>
+                    <div className="bg-[#1E293B] sm:bg-[#0B172A] p-5 rounded-3xl border border-gray-800 flex flex-col justify-between h-32 col-span-2">
+                      <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black">Expired Products</p>
+                      <p className="font-black text-red-400 text-lg">-TSh {formatMoney(data.expiredCost)}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {type === 'inventory_asset' && data.products && (
+                <div className="space-y-6">
+                  <div className="bg-[#1E293B] sm:bg-[#0B172A] p-8 rounded-[32px] border border-gray-800 text-center shadow-xl">
+                    <p className="text-xs text-gray-500 font-black uppercase tracking-[0.2em] mb-2">Total Asset Value</p>
+                    <p className="text-4xl font-black text-white">TSh {formatMoney(data.value)}</p>
+                    <p className="text-[10px] text-gray-600 mt-4 uppercase tracking-widest font-bold">Based on Current Stock × Cost Price</p>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] ml-2">Stock Inventory Assets</h4>
+                    <div className="space-y-3">
+                      {data.products.map((p) => (
+                        <div key={p.id} className="flex justify-between items-center bg-[#1E293B] sm:bg-[#0B172A] p-5 rounded-[24px] border border-gray-800/50">
+                          <div className="min-w-0 flex-1 mr-4">
+                            <p className="font-bold text-white text-base leading-tight truncate">{p.name}</p>
+                            <p className="text-[10px] text-gray-500 mt-1 uppercase font-black tracking-tighter">
+                              {p.stock} units @ TSh {formatMoney(p.costPrice)}
+                            </p>
+                          </div>
+                          <p className="font-black text-white text-lg shrink-0">TSh {formatMoney(p.stock * p.costPrice)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {type === 'accounts' && data.balances && (
+                <div className="space-y-6">
+                  {/* Summary Card */}
+                  <div className={`${Number(data.total) >= 0 ? 'bg-blue-500/10 border-blue-500/20' : 'bg-red-500/10 border-red-500/20'} p-8 rounded-[32px] border text-center shadow-lg`}>
+                    <p className={`text-xs ${Number(data.total) >= 0 ? 'text-blue-500' : 'text-red-500'} font-black uppercase tracking-[0.2em] mb-2`}>Total Cash & Bank</p>
+                    <p className={`text-4xl font-black ${Number(data.total) >= 0 ? 'text-blue-400' : 'text-red-400'}`}>
+                      TSh {formatMoney(data.total)}
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] ml-2">Liquidity Breakdown</h4>
+                    <div className="space-y-3">
+                      {Object.entries(data.balances).map(([account, balance]) => (
+                        <div key={account} className="flex justify-between items-center bg-[#1E293B] sm:bg-[#0B172A] p-5 rounded-[24px] border border-gray-800/50 hover:border-gray-700 transition-all group">
+                          <div className="flex items-center gap-4">
+                            <div className={`w-12 h-12 ${Number(balance) >= 0 ? 'bg-blue-500/10 text-blue-500' : 'bg-red-500/10 text-red-500'} rounded-[18px] flex items-center justify-center transition-transform group-hover:scale-110`}>
+                              <DollarSign size={22} strokeWidth={2.5} />
+                            </div>
+                            <div>
+                              <p className="font-bold text-white text-base leading-tight">{account}</p>
+                              <p className="text-[10px] text-gray-500 uppercase font-black tracking-tighter">Account Asset</p>
+                            </div>
+                          </div>
+                          <p className={`font-black text-lg ${Number(balance) >= 0 ? 'text-white' : 'text-red-400'}`}>
+                            TSh {formatMoney(balance)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Insight Message */}
+                  {Number(data.total) < 0 && (
+                    <div className="bg-red-500/5 border border-red-500/10 p-4 rounded-2xl flex items-start gap-3">
+                      <AlertTriangle size={18} className="text-red-500 shrink-0 mt-0.5" />
+                      <p className="text-[11px] text-red-400 leading-relaxed">
+                        Your account balance is negative. This usually means expenses recorded exceed the total paid sales. Check for unpaid orders or high OPEX.
                       </p>
                     </div>
-                  ))}
+                  )}
                 </div>
-              </div>
+              )}
 
-              {/* Insight Message */}
-              {Number(data.total) < 0 && (
-                <div className="bg-red-500/5 border border-red-500/10 p-4 rounded-2xl flex items-start gap-3">
-                  <AlertTriangle size={18} className="text-red-500 shrink-0 mt-0.5" />
-                  <p className="text-[11px] text-red-400 leading-relaxed">
-                    Your account balance is negative. This usually means expenses recorded exceed the total paid sales. Check for unpaid orders or high OPEX.
-                  </p>
+              {type === 'expenses' && data.categories && (
+                <div className="space-y-6">
+                  <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] ml-2">Category Concentration</h4>
+                  <div className="space-y-3">
+                    {data.categories.map((cat, idx) => (
+                      <div key={idx} className="flex justify-between items-center bg-[#1E293B] sm:bg-[#0B172A] p-5 rounded-[24px] border border-gray-800/50">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-red-500/10 text-red-500 rounded-[18px] flex items-center justify-center">
+                            <ArrowLeft size={22} className="rotate-45" strokeWidth={2.5} />
+                          </div>
+                          <p className="font-bold text-white text-base leading-tight">{cat.name}</p>
+                        </div>
+                        <p className="font-black text-white text-lg shrink-0">TSh {formatMoney(cat.amount)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {type === 'revenue' && (
+                <div className="space-y-6">
+                  <div className="bg-[#1E293B] sm:bg-[#0B172A] p-8 rounded-[32px] border border-gray-800 text-center shadow-xl">
+                    <p className="text-xs text-gray-500 font-black uppercase tracking-[0.2em] mb-2">Gross Revenue</p>
+                    <p className="text-4xl font-black text-white">TSh {formatMoney(data.total)}</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="bg-green-500/10 p-6 rounded-3xl border border-green-500/20 flex justify-between items-center">
+                      <p className="text-xs text-green-500 font-black uppercase tracking-widest">Cash in Hand</p>
+                      <p className="text-xl font-black text-green-400">TSh {formatMoney(data.cash)}</p>
+                    </div>
+                    <div className="bg-blue-500/10 p-6 rounded-3xl border border-blue-500/20 flex justify-between items-center">
+                      <p className="text-xs text-blue-500 font-black uppercase tracking-widest">Mobile Money</p>
+                      <p className="text-xl font-black text-blue-400">TSh {formatMoney(data.mobile)}</p>
+                    </div>
+                    <div className="bg-purple-500/10 p-6 rounded-3xl border border-purple-500/20 flex justify-between items-center">
+                      <p className="text-xs text-purple-500 font-black uppercase tracking-widest">Card / Bank</p>
+                      <p className="text-xl font-black text-purple-400">TSh {formatMoney(data.card)}</p>
+                    </div>
+                    <div className="bg-orange-500/10 p-6 rounded-3xl border border-orange-500/20 relative">
+                      <div className="flex justify-between items-center mb-1">
+                        <p className="text-xs text-orange-500 font-black uppercase tracking-widest">Receivables</p>
+                        {onUpdateUser && user && (
+                          <button 
+                            onClick={() => onUpdateUser({ includeReceivableInRevenue: !user.includeReceivableInRevenue })}
+                            className={`w-10 h-5 rounded-full relative transition-colors duration-200 ${user.includeReceivableInRevenue ? 'bg-orange-500' : 'bg-gray-700'}`}
+                          >
+                            <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all duration-200 ${user.includeReceivableInRevenue ? 'left-[22px]' : 'left-[2px]'}`} />
+                          </button>
+                        )}
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <p className="text-[9px] text-orange-500/60 uppercase font-black">Credit Sales</p>
+                        <p className="text-xl font-black text-orange-400">TSh {formatMoney(data.credit)}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {type === 'stock' && (
+                <div className="space-y-6">
+                  <div className="bg-[#1E293B] sm:bg-[#0B172A] p-8 rounded-[32px] border border-gray-800 text-center shadow-xl">
+                    <p className="text-xs text-gray-500 font-black uppercase tracking-[0.2em] mb-2">Inventory Assets</p>
+                    <p className="text-4xl font-black text-white">TSh {formatMoney(data.value)}</p>
+                  </div>
+                  <div className="bg-orange-500/10 p-8 rounded-[32px] border border-orange-500/20 text-center">
+                    <p className="text-xs text-orange-500 font-black uppercase tracking-[0.2em] mb-2">Low Stock Items</p>
+                    <p className="text-4xl font-black text-orange-400">{data.lowStockCount || 0}</p>
+                  </div>
                 </div>
               )}
             </div>
-          )}
-
-          {type === 'expenses' && data.categories && (
-            <div className="space-y-6">
-              <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] ml-2">Category Concentration</h4>
-              <div className="space-y-3">
-                {data.categories.map((cat, idx) => (
-                  <div key={idx} className="flex justify-between items-center bg-[#1E293B] sm:bg-[#0B172A] p-5 rounded-[24px] border border-gray-800/50">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-red-500/10 text-red-500 rounded-[18px] flex items-center justify-center">
-                        <ArrowLeft size={22} className="rotate-45" strokeWidth={2.5} />
-                      </div>
-                      <p className="font-bold text-white text-base leading-tight">{cat.name}</p>
-                    </div>
-                    <p className="font-black text-white text-lg shrink-0">TSh {formatMoney(cat.amount)}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {type === 'revenue' && (
-            <div className="space-y-6">
-              <div className="bg-[#1E293B] sm:bg-[#0B172A] p-8 rounded-[32px] border border-gray-800 text-center shadow-xl">
-                <p className="text-xs text-gray-500 font-black uppercase tracking-[0.2em] mb-2">Gross Revenue</p>
-                <p className="text-4xl font-black text-white">TSh {formatMoney(data.total)}</p>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4">
-                <div className="bg-green-500/10 p-6 rounded-3xl border border-green-500/20 flex justify-between items-center">
-                  <p className="text-xs text-green-500 font-black uppercase tracking-widest">Cash in Hand</p>
-                  <p className="text-xl font-black text-green-400">TSh {formatMoney(data.cash)}</p>
-                </div>
-                <div className="bg-blue-500/10 p-6 rounded-3xl border border-blue-500/20 flex justify-between items-center">
-                  <p className="text-xs text-blue-500 font-black uppercase tracking-widest">Mobile Money</p>
-                  <p className="text-xl font-black text-blue-400">TSh {formatMoney(data.mobile)}</p>
-                </div>
-                <div className="bg-purple-500/10 p-6 rounded-3xl border border-purple-500/20 flex justify-between items-center">
-                  <p className="text-xs text-purple-500 font-black uppercase tracking-widest">Card / Bank</p>
-                  <p className="text-xl font-black text-purple-400">TSh {formatMoney(data.card)}</p>
-                </div>
-                <div className="bg-orange-500/10 p-6 rounded-3xl border border-orange-500/20 relative">
-                  <div className="flex justify-between items-center mb-1">
-                    <p className="text-xs text-orange-500 font-black uppercase tracking-widest">Receivables</p>
-                    {onUpdateUser && user && (
-                      <button 
-                        onClick={() => onUpdateUser({ includeReceivableInRevenue: !user.includeReceivableInRevenue })}
-                        className={`w-10 h-5 rounded-full relative transition-colors duration-200 ${user.includeReceivableInRevenue ? 'bg-orange-500' : 'bg-gray-700'}`}
-                      >
-                        <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all duration-200 ${user.includeReceivableInRevenue ? 'left-[22px]' : 'left-[2px]'}`} />
-                      </button>
-                    )}
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <p className="text-[9px] text-orange-500/60 uppercase font-black">Credit Sales</p>
-                    <p className="text-xl font-black text-orange-400">TSh {formatMoney(data.credit)}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {type === 'stock' && (
-            <div className="space-y-6">
-              <div className="bg-[#1E293B] sm:bg-[#0B172A] p-8 rounded-[32px] border border-gray-800 text-center shadow-xl">
-                <p className="text-xs text-gray-500 font-black uppercase tracking-[0.2em] mb-2">Inventory Assets</p>
-                <p className="text-4xl font-black text-white">TSh {formatMoney(data.value)}</p>
-              </div>
-              <div className="bg-orange-500/10 p-8 rounded-[32px] border border-orange-500/20 text-center">
-                <p className="text-xs text-orange-500 font-black uppercase tracking-[0.2em] mb-2">Low Stock Items</p>
-                <p className="text-4xl font-black text-orange-400">{data.lowStockCount || 0}</p>
-              </div>
-            </div>
-          )}
-        </div>
-      </motion.div>
-    </div>
-  </AnimatePresence>
-);
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>
+  );
 };
 
 const PermissionBanner = () => {
@@ -8772,7 +8773,7 @@ const AppLayout = ({
                     name: user?.name,
                     role: user?.role
                   });
-                  setUser(prev => prev ? { ...prev, ...data } : null);
+                  setUser((prev: any) => prev ? { ...prev, ...data } : null);
                 } catch (err) {
                   console.error("Error updating user setting:", err);
                 }
@@ -8793,20 +8794,20 @@ const AppLayout = ({
                 } : showFinancialDetail === 'expenses' ? {
                   categories: EXPENSE_CATEGORIES.map(cat => ({
                     name: cat,
-                    amount: expenses.filter(e => e.category === cat).reduce((sum, e) => sum + e.amount, 0)
+                    amount: expenses.filter((e: any) => e.category === cat).reduce((sum: number, e: any) => sum + e.amount, 0)
                   })).sort((a, b) => b.amount - a.amount)
                 } : showFinancialDetail === 'accounts' ? {
                   balances: accountBalances,
                   total: totalCashBank
                 } : showFinancialDetail === 'revenue' ? {
-                  cash: orders.filter(o => getAccountCategory(o.paymentMode) === ACCOUNT_CATEGORIES.CASH && (o.paymentStatus === 'Paid' || user?.includeReceivableInRevenue)).reduce((sum, o) => sum + Number(o.totalCost), 0),
-                  mobile: orders.filter(o => getAccountCategory(o.paymentMode) === ACCOUNT_CATEGORIES.MOBILE && (o.paymentStatus === 'Paid' || user?.includeReceivableInRevenue)).reduce((sum, o) => sum + Number(o.totalCost), 0),
-                  card: orders.filter(o => getAccountCategory(o.paymentMode) === ACCOUNT_CATEGORIES.CARD && (o.paymentStatus === 'Paid' || user?.includeReceivableInRevenue)).reduce((sum, o) => sum + Number(o.totalCost), 0),
-                  credit: orders.filter(o => o.paymentStatus === 'Unpaid').reduce((sum, o) => sum + Number(o.totalCost), 0),
+                  cash: orders.filter((o: any) => getAccountCategory(o.paymentMode) === ACCOUNT_CATEGORIES.CASH && (o.paymentStatus === 'Paid' || user?.includeReceivableInRevenue)).reduce((sum: number, o: any) => sum + Number(o.totalCost), 0),
+                  mobile: orders.filter((o: any) => getAccountCategory(o.paymentMode) === ACCOUNT_CATEGORIES.MOBILE && (o.paymentStatus === 'Paid' || user?.includeReceivableInRevenue)).reduce((sum: number, o: any) => sum + Number(o.totalCost), 0),
+                  card: orders.filter((o: any) => getAccountCategory(o.paymentMode) === ACCOUNT_CATEGORIES.CARD && (o.paymentStatus === 'Paid' || user?.includeReceivableInRevenue)).reduce((sum: number, o: any) => sum + Number(o.totalCost), 0),
+                  credit: orders.filter((o: any) => o.paymentStatus === 'Unpaid').reduce((sum: number, o: any) => sum + Number(o.totalCost), 0),
                   total: actualRevenue
                 } : showFinancialDetail === 'stock' ? {
                   value: stockValue,
-                  lowStockCount: products.filter(p => (p.stock || 0) <= (p.reorderLevel || 10)).length
+                  lowStockCount: products.filter((p: any) => (p.stock || 0) <= (p.reorderLevel || 10)).length
                 } : {
                   cash: actualRevenue - totalExpenses
                 }
