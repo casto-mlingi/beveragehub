@@ -168,7 +168,7 @@ type Ad = { id: string; src: string; alt?: string; order?: number };
 type Vehicle = { id: string; name: string; capacity: string; price: string; time: string; icon: string };
 type PaymentMethod = { id: string; name: string; icon?: string; color?: string };
 type QuickAction = { id: string; iconName: string; label: string; order?: number };
-type Category = { id: string; name: string; image?: string; order?: number };
+type Category = { id: string; name: string; image?: string; order?: number; subCategories?: string[] };
 
 type Vendor = {
   id: string;
@@ -1498,8 +1498,8 @@ const ManagerStats = ({
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-black uppercase tracking-tight">Store Manager</h1>
-          <p className="text-gray-500 text-sm font-medium">Inventory & Sales Overview</p>
+          <KileoBevLogo width="120px" />
+          <p className="text-gray-500 text-sm font-medium mt-1">Inventory & Sales Overview</p>
         </div>
         <button 
           onClick={() => navigate('/manager')}
@@ -1689,6 +1689,310 @@ const CategorySections = ({
   );
 };
 
+const CustomerDashboard = ({ 
+  user, 
+  orders, 
+  promoCodes, 
+  navigate,
+  onUpdateUser,
+  setPreAppliedPromo
+}: { 
+  user: UserProfile; 
+  orders: Order[]; 
+  promoCodes: PromoCode[]; 
+  navigate: any;
+  onUpdateUser: (data: Partial<UserProfile>) => void;
+  setPreAppliedPromo: (promo: PromoCode | null) => void;
+}) => {
+  const [showRecentOrders, setShowRecentOrders] = useState(false);
+  const [showAccountInfo, setShowAccountInfo] = useState(false);
+  const [showPromos, setShowPromos] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ current: '', new: '', confirm: '' });
+  const [userInfoForm, setUserInfoForm] = useState({ phone: user.phone || '', address: user.address || '' });
+
+  const userOrders = orders.filter(o => o.customerPhone === user.phone || o.customerName === user.name).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+  return (
+    <div className="px-6 py-6 space-y-6 bg-[#F8FAFC]">
+      <div className="flex items-center gap-4">
+        <div className="w-16 h-16 bg-[#0077B6] rounded-full flex items-center justify-center text-white shadow-lg">
+          <UserIcon size={32} />
+        </div>
+        <div>
+          <h2 className="text-xl font-black text-gray-900">Karibu, {user.name}!</h2>
+          <p className="text-sm font-medium text-gray-500">KileoBev Member since {new Date().getFullYear()}</p>
+        </div>
+      </div>
+
+      {/* Recent Orders Summary Card */}
+      <div className="bg-white rounded-[32px] p-6 shadow-sm border border-gray-100">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-bold text-gray-900">Recent Orders</h3>
+          <button 
+            onClick={() => setShowRecentOrders(true)}
+            className="text-[#0077B6] text-sm font-bold flex items-center gap-1"
+          >
+            Check All <ChevronRight size={16} />
+          </button>
+        </div>
+        
+        <div className="space-y-4">
+          {userOrders.slice(0, 3).length === 0 ? (
+            <div className="text-center py-4">
+              <p className="text-gray-400 text-sm">No recent orders yet.</p>
+              <button onClick={() => navigate('/products')} className="mt-2 text-[#0077B6] font-bold text-sm">Start Shopping</button>
+            </div>
+          ) : (
+            userOrders.slice(0, 3).map(order => (
+              <div key={order.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                <div>
+                  <p className="text-sm font-bold text-gray-900">Order #{order.id.slice(-6)}</p>
+                  <p className="text-[10px] text-gray-500 font-medium">{new Date(order.timestamp).toLocaleDateString()}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-black text-gray-900">TSh {formatMoney(order.totalCost)}</p>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    order.status === 'Delivered' ? 'bg-green-100 text-green-600' : 
+                    order.status === 'Cancelled' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'
+                  }`}>
+                    {order.status}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Main Menu Grid */}
+      <div className="grid grid-cols-2 gap-4">
+        <button 
+          onClick={() => setShowRecentOrders(true)}
+          className="flex flex-col items-center gap-3 p-6 bg-white rounded-[32px] border border-gray-100 shadow-sm active:scale-95 transition-all"
+        >
+          <div className="w-12 h-12 bg-blue-50 text-blue-500 rounded-2xl flex items-center justify-center">
+            <ClipboardList size={24} />
+          </div>
+          <span className="text-sm font-bold text-gray-900">Check Recent Orders</span>
+        </button>
+
+        <button 
+          onClick={() => setShowAccountInfo(true)}
+          className="flex flex-col items-center gap-3 p-6 bg-white rounded-[32px] border border-gray-100 shadow-sm active:scale-95 transition-all"
+        >
+          <div className="w-12 h-12 bg-purple-50 text-purple-500 rounded-2xl flex items-center justify-center">
+            <Settings size={24} />
+          </div>
+          <span className="text-sm font-bold text-gray-900">Account Info</span>
+        </button>
+
+        <button 
+          onClick={() => setShowPromos(true)}
+          className="flex flex-col items-center gap-3 p-6 bg-white rounded-[32px] border border-gray-100 shadow-sm active:scale-95 transition-all"
+        >
+          <div className="w-12 h-12 bg-orange-50 text-orange-500 rounded-2xl flex items-center justify-center">
+            <Ticket size={24} />
+          </div>
+          <span className="text-sm font-bold text-gray-900">Promos & Coupons</span>
+        </button>
+
+        <a 
+          href="https://wa.me/255765035656" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="flex flex-col items-center gap-3 p-6 bg-white rounded-[32px] border border-gray-100 shadow-sm active:scale-95 transition-all"
+        >
+          <div className="w-12 h-12 bg-green-50 text-green-500 rounded-2xl flex items-center justify-center">
+            <MessageCircle size={24} />
+          </div>
+          <span className="text-sm font-bold text-gray-900">Get Help Menu</span>
+        </a>
+      </div>
+
+      {/* Quick Contact */}
+      <div className="bg-[#0077B6] rounded-[32px] p-6 text-white flex items-center justify-between shadow-lg shadow-blue-500/20">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Hotline Number</p>
+          <p className="text-xl font-black">+255 765 035 656</p>
+        </div>
+        <a href="tel:+255765035656" className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md active:scale-90 transition-all">
+          <Phone size={24} />
+        </a>
+      </div>
+
+      {/* Modals */}
+      <AnimatePresence>
+        {showRecentOrders && (
+          <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} className="fixed inset-0 z-[100] bg-white flex flex-col">
+            <div className="px-6 py-4 border-b flex items-center gap-4">
+              <button onClick={() => setShowRecentOrders(false)}><ArrowLeft size={24} /></button>
+              <h3 className="text-lg font-bold">Recent Orders History</h3>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {userOrders.map(order => (
+                <div key={order.id} className="p-5 bg-gray-50 rounded-[24px] border border-gray-100 space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm font-black text-gray-900">Order #{order.id.slice(-6)}</p>
+                      <p className="text-xs text-gray-500">{new Date(order.timestamp).toLocaleString()}</p>
+                    </div>
+                    <span className={`text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-wider ${
+                      order.status === 'Delivered' ? 'bg-green-500 text-white' : 
+                      order.status === 'Cancelled' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'
+                    }`}>
+                      {order.status}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {order.items.map((item, idx) => (
+                      <div key={idx} className="flex justify-between text-xs font-medium">
+                        <span className="text-gray-600">{item.quantity}x {item.name}</span>
+                        <span className="text-gray-900 font-bold">TSh {formatMoney(item.price)}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="pt-3 border-t border-gray-200 flex justify-between items-center">
+                    <span className="text-sm font-bold text-gray-900">Total Paid</span>
+                    <span className="text-lg font-black text-[#0077B6]">TSh {formatMoney(order.totalCost)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {showAccountInfo && (
+          <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} className="fixed inset-0 z-[100] bg-white flex flex-col">
+            <div className="px-6 py-4 border-b flex items-center gap-4">
+              <button onClick={() => setShowAccountInfo(false)}><ArrowLeft size={24} /></button>
+              <h3 className="text-lg font-bold">Account Information</h3>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 space-y-8">
+              <section className="space-y-4">
+                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Personal Details</h4>
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500">Full Name</label>
+                    <input type="text" value={user.name} readOnly className="w-full bg-gray-50 border-gray-100 rounded-2xl px-4 py-4 text-gray-900 font-bold" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500">Phone Number</label>
+                    <input 
+                      type="tel" 
+                      value={userInfoForm.phone} 
+                      onChange={e => setUserInfoForm({...userInfoForm, phone: e.target.value})}
+                      className="w-full bg-gray-50 border-gray-100 rounded-2xl px-4 py-4 text-gray-900 font-bold focus:border-[#0077B6] outline-none" 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500">Permanent Location</label>
+                    <input 
+                      type="text" 
+                      value={userInfoForm.address} 
+                      onChange={e => setUserInfoForm({...userInfoForm, address: e.target.value})}
+                      placeholder="e.g., Salasala kwa Mama Isack"
+                      className="w-full bg-gray-50 border-gray-100 rounded-2xl px-4 py-4 text-gray-900 font-bold focus:border-[#0077B6] outline-none" 
+                    />
+                  </div>
+                  <button 
+                    onClick={() => {
+                      onUpdateUser(userInfoForm);
+                      setShowAccountInfo(false);
+                    }}
+                    className="w-full bg-[#0077B6] text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-blue-500/20"
+                  >
+                    Update Profile
+                  </button>
+                </div>
+              </section>
+
+              <section className="space-y-4">
+                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Update Password</h4>
+                <div className="space-y-4">
+                  <input 
+                    type="password" 
+                    placeholder="Current Password" 
+                    value={passwordForm.current}
+                    onChange={e => setPasswordForm({...passwordForm, current: e.target.value})}
+                    className="w-full bg-gray-50 border-gray-100 rounded-2xl px-4 py-4 text-gray-900 font-bold focus:border-[#0077B6] outline-none" 
+                  />
+                  <input 
+                    type="password" 
+                    placeholder="New Password" 
+                    value={passwordForm.new}
+                    onChange={e => setPasswordForm({...passwordForm, new: e.target.value})}
+                    className="w-full bg-gray-50 border-gray-100 rounded-2xl px-4 py-4 text-gray-900 font-bold focus:border-[#0077B6] outline-none" 
+                  />
+                  <input 
+                    type="password" 
+                    placeholder="Confirm New Password" 
+                    value={passwordForm.confirm}
+                    onChange={e => setPasswordForm({...passwordForm, confirm: e.target.value})}
+                    className="w-full bg-gray-50 border-gray-100 rounded-2xl px-4 py-4 text-gray-900 font-bold focus:border-[#0077B6] outline-none" 
+                  />
+                  <button 
+                    onClick={() => {
+                      if (passwordForm.new !== passwordForm.confirm) return alert("Passwords don't match");
+                      alert("Password updated successfully");
+                      setShowAccountInfo(false);
+                    }}
+                    className="w-full bg-gray-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest"
+                  >
+                    Change Password
+                  </button>
+                </div>
+              </section>
+            </div>
+          </motion.div>
+        )}
+
+        {showPromos && (
+          <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} className="fixed inset-0 z-[100] bg-white flex flex-col">
+            <div className="px-6 py-4 border-b flex items-center gap-4">
+              <button onClick={() => setShowPromos(false)}><ArrowLeft size={24} /></button>
+              <h3 className="text-lg font-bold">Promotions & Coupons</h3>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {promoCodes.map(promo => (
+                <div key={promo.id} className="relative bg-[#0F172A] rounded-[32px] p-6 text-white overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-[#0077B6]/20 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-[#0077B6]/40 transition-all duration-500" />
+                  <div className="relative z-10 space-y-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className="bg-orange-500 text-white text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-widest">
+                          {promo.type === 'percentage' ? `${promo.value}% OFF` : `TSh ${formatMoney(promo.value)} OFF`}
+                        </span>
+                        <h4 className="text-2xl font-black mt-2">{promo.code}</h4>
+                      </div>
+                      <Ticket size={32} className="text-orange-500 opacity-50" />
+                    </div>
+                    <p className="text-sm text-gray-400 leading-relaxed">{promo.description}</p>
+                    <div className="flex justify-between items-center pt-4 border-t border-white/10">
+                      <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                        Expires: {new Date(promo.expiryDate).toLocaleDateString()}
+                      </div>
+                      <button 
+                        onClick={() => {
+                          setPreAppliedPromo(promo);
+                          setShowPromos(false);
+                          navigate('/cart');
+                        }}
+                        className="bg-white text-gray-900 px-6 py-2 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-[#0077B6] hover:text-white transition-all active:scale-95"
+                      >
+                        Apply Now
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 const HomeTab = ({ 
   user, 
   setUser, 
@@ -1699,6 +2003,7 @@ const HomeTab = ({
   ads, 
   quickActions, 
   categories, 
+  promoCodes,
   setShowSettingsModal, 
   addToCart, 
   purchaseOrders, 
@@ -1711,7 +2016,8 @@ const HomeTab = ({
   totalExpenses,
   actualNetProfit,
   totalCashBank,
-  expiredCost
+  expiredCost,
+  setPreAppliedPromo
 }: { 
   user: UserProfile | null; 
   setUser: React.Dispatch<React.SetStateAction<UserProfile | null>>; 
@@ -1722,6 +2028,7 @@ const HomeTab = ({
   ads: Ad[]; 
   quickActions: QuickAction[]; 
   categories: Category[]; 
+  promoCodes: PromoCode[];
   setShowSettingsModal: (show: boolean) => void; 
   addToCart: (item: Omit<CartItem, 'id' | 'quantity'>) => void; 
   purchaseOrders?: PurchaseOrder[]; 
@@ -1735,6 +2042,7 @@ const HomeTab = ({
   actualNetProfit: number;
   totalCashBank: number;
   expiredCost: number;
+  setPreAppliedPromo: (promo: PromoCode | null) => void;
 }) => {
   const navigate = useNavigate();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -1776,6 +2084,29 @@ const HomeTab = ({
             expiredCost={expiredCost}
           />
         </div>
+      ) : user?.role === 'client' ? (
+        <CustomerDashboard 
+          user={user} 
+          orders={orders} 
+          promoCodes={promoCodes} 
+          navigate={navigate}
+          setPreAppliedPromo={setPreAppliedPromo}
+          onUpdateUser={async (data) => {
+            if (!user?.uid) return;
+            try {
+              await apiService.post('users', { 
+                ...data, 
+                uid: user?.uid,
+                email: user?.email,
+                name: user?.name,
+                role: user?.role
+              });
+              setUser((prev: any) => prev ? { ...prev, ...data } : null);
+            } catch (err) {
+              console.error("Error updating user info:", err);
+            }
+          }}
+        />
       ) : (
         <>
           <Carousel slides={ads} />
@@ -1966,8 +2297,8 @@ const MapProvider = ({ children }: { children: (isLoaded: boolean) => React.Reac
   return <>{children(true)}</>;
 };
 
-const ProfileModal = ({ user, onClose, setUser, onOpenMapConfig, promoCodes }: { user: UserProfile; onClose: () => void; setUser: (u: UserProfile) => void; onOpenMapConfig: () => void; promoCodes: PromoCode[] }) => {
-  const [view, setView] = useState<'menu' | 'details' | 'location' | 'promo'>('menu');
+const ProfileModal = ({ user, onClose, setUser, onOpenMapConfig, promoCodes, orders }: { user: UserProfile; onClose: () => void; setUser: (u: UserProfile) => void; onOpenMapConfig: () => void; promoCodes: PromoCode[]; orders: Order[] }) => {
+  const [view, setView] = useState<'menu' | 'details' | 'location' | 'promo' | 'orders' | 'help'>('menu');
   const [formData, setFormData] = useState({ ...user });
   const [isSaving, setIsSaving] = useState(false);
   const [promoSearch, setPromoSearch] = useState('');
@@ -2086,13 +2417,117 @@ const ProfileModal = ({ user, onClose, setUser, onOpenMapConfig, promoCodes }: {
   };
 
   const menuItems = [
-    { icon: UserIcon, label: 'Account Details', action: () => setView('details') },
+    { icon: UserIcon, label: 'Account Info', action: () => setView('details') },
+    { icon: ShoppingBag, label: 'Recent Orders', action: () => setView('orders' as any) },
+    { icon: Ticket, label: 'Promotions & Coupons', action: () => setView('promo') },
+    { icon: Info, label: 'Get Help', action: () => setView('help' as any) },
     ...(user?.role === 'manager' ? [{ icon: MapPin, label: 'Store Location', action: () => setView('location') }] : []),
-    { icon: Ticket, label: 'Promo Code & Gift Cards', action: () => setView('promo') },
-    { icon: ShoppingBag, label: 'Order History', action: () => {} },
-    { icon: Info, label: 'Help Center', action: () => {} },
-    { icon: FileText, label: 'About', action: () => {} },
   ];
+
+  if (view === 'help') {
+    return (
+      <div className="fixed inset-0 z-[100] bg-[#F8FAFC] flex flex-col overflow-hidden">
+        <div className="safe-top bg-white border-b border-gray-100 px-6 py-4 flex justify-between items-center sticky top-0 z-10">
+          <button onClick={() => setView('menu')} className="text-gray-900 p-2 bg-gray-50 rounded-full transition-colors active:scale-95">
+            <ArrowLeft size={24} />
+          </button>
+          <h3 className="text-xl font-bold text-gray-900">Get Help</h3>
+          <div className="w-10" />
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+          <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm text-center space-y-6">
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto text-green-600">
+              <MessageCircle size={40} />
+            </div>
+            <div className="space-y-2">
+              <h4 className="text-xl font-bold text-gray-900">WhatsApp Support</h4>
+              <p className="text-sm text-gray-500">Join our community or chat with us directly for quick assistance.</p>
+            </div>
+            <button 
+              onClick={() => window.open('https://wa.me/255765035656', '_blank')}
+              className="w-full bg-[#25D366] text-white py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 active:scale-95 transition-all shadow-lg shadow-green-500/20"
+            >
+              <MessageCircle size={24} />
+              Open WhatsApp
+            </button>
+          </div>
+
+          <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm text-center space-y-6">
+            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto text-blue-600">
+              <Phone size={40} />
+            </div>
+            <div className="space-y-2">
+              <h4 className="text-xl font-bold text-gray-900">Hotline</h4>
+              <p className="text-sm text-gray-500">Available 24/7 for urgent orders and inquiries.</p>
+            </div>
+            <a 
+              href="tel:+255765035656"
+              className="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 active:scale-95 transition-all shadow-lg"
+            >
+              <Phone size={24} />
+              +255 765 035 656
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'orders') {
+    const userOrders = orders.filter(o => o.customerPhone === user?.phone).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    return (
+      <div className="fixed inset-0 z-[100] bg-[#F8FAFC] flex flex-col overflow-hidden">
+        <div className="safe-top bg-white border-b border-gray-100 px-6 py-4 flex justify-between items-center sticky top-0 z-10">
+          <button onClick={() => setView('menu')} className="text-gray-900 p-2 bg-gray-50 rounded-full transition-colors active:scale-95">
+            <ArrowLeft size={24} />
+          </button>
+          <h3 className="text-xl font-bold text-gray-900">Recent Orders</h3>
+          <div className="w-10" />
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar pb-32">
+          {userOrders.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full space-y-4 opacity-40">
+              <ShoppingBag size={64} />
+              <p className="font-bold">No orders found</p>
+            </div>
+          ) : (
+            userOrders.map(order => (
+              <div key={order.id} className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm space-y-4 active:scale-[0.98] transition-all">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Order ID</p>
+                    <p className="font-bold text-gray-900">#{order.id}</p>
+                  </div>
+                  <div className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
+                    order.status === 'Delivered' ? 'bg-green-100 text-green-600' : 
+                    order.status === 'Cancelled' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'
+                  }`}>
+                    {order.status}
+                  </div>
+                </div>
+                <div className="flex justify-between items-end">
+                  <div>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Amount</p>
+                    <p className="text-xl font-black text-gray-900">TSh {Number(order.totalCost).toLocaleString()}</p>
+                  </div>
+                  <p className="text-[10px] font-bold text-gray-400">{new Date(order.timestamp).toLocaleDateString()}</p>
+                </div>
+                <div className="pt-2 border-t border-gray-50 flex gap-2 overflow-x-auto no-scrollbar">
+                   {order.items.map((item, idx) => (
+                     <div key={idx} className="bg-gray-50 px-2 py-1 rounded-md text-[10px] font-bold text-gray-600 whitespace-nowrap">
+                       {item.name} x{item.quantity}
+                     </div>
+                   ))}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  }
 
   if (view === 'promo') {
     return (
@@ -2669,9 +3104,7 @@ const ProductsTab = ({
             >
               <ArrowLeft size={24} strokeWidth={2.5} />
             </button>
-            <h1 className="text-gray-900 text-[20px] font-black tracking-tight">
-              {category === 'Beer' ? 'Beers' : category}
-            </h1>
+            <KileoBevLogo width="100px" />
           </div>
           <button
             onClick={() => navigate('/cart')}
@@ -2983,7 +3416,7 @@ const MapComponent = ({ isLoaded, destination, progress, showRoute = true }: { i
   );
 };
 
-const CheckoutFlow = ({ isOpen, onClose, cart, isLoaded, onComplete, userName, userPhone, selectedCustomer, vehicles, paymentMethods, autoTransportFee, nearestStore, promoCodes }: { 
+const CheckoutFlow = ({ isOpen, onClose, cart, isLoaded, onComplete, userName, userPhone, selectedCustomer, vehicles, paymentMethods, autoTransportFee, nearestStore, promoCodes, preAppliedPromo, setPreAppliedPromo }: { 
   isOpen: boolean; 
   onClose: () => void; 
   cart: CartItem[]; 
@@ -2997,6 +3430,8 @@ const CheckoutFlow = ({ isOpen, onClose, cart, isLoaded, onComplete, userName, u
   autoTransportFee: number;
   nearestStore: (UserProfile & { distance: number }) | null;
   promoCodes: PromoCode[];
+  preAppliedPromo?: PromoCode | null;
+  setPreAppliedPromo?: (promo: PromoCode | null) => void;
 }) => {
   const [step, setStep] = useState(1);
   const [identityPhone, setIdentityPhone] = useState(userPhone || '');
@@ -3009,9 +3444,15 @@ const CheckoutFlow = ({ isOpen, onClose, cart, isLoaded, onComplete, userName, u
   const checkIdentityAbortControllerRef = useRef<AbortController | null>(null);
 
   // Promo state
-  const [appliedPromo, setAppliedPromo] = useState<PromoCode | null>(null);
+  const [appliedPromo, setAppliedPromo] = useState<PromoCode | null>(preAppliedPromo || null);
   const [promoInput, setPromoInput] = useState('');
   const [promoError, setPromoError] = useState('');
+
+  useEffect(() => {
+    if (preAppliedPromo) {
+      setAppliedPromo(preAppliedPromo);
+    }
+  }, [preAppliedPromo]);
 
   // Initialize identity data if user is already logged in
   useEffect(() => {
@@ -3911,7 +4352,7 @@ interface CheckoutDetails {
   promoCode?: string;
 }
 
-const CartTab = ({ cart, removeFromCart, updateCartQuantity, onCheckout, isLoaded, userName, userPhone, selectedCustomer, vehicles, paymentMethods, autoTransportFee, nearestStore, promoCodes }: { 
+const CartTab = ({ cart, removeFromCart, updateCartQuantity, onCheckout, isLoaded, userName, userPhone, selectedCustomer, vehicles, paymentMethods, autoTransportFee, nearestStore, promoCodes, preAppliedPromo, setPreAppliedPromo }: { 
   cart: CartItem[]; 
   removeFromCart: (id: number) => void; 
   updateCartQuantity: (id: number, delta: number) => void;
@@ -3925,11 +4366,19 @@ const CartTab = ({ cart, removeFromCart, updateCartQuantity, onCheckout, isLoade
   autoTransportFee: number;
   nearestStore: (UserProfile & { distance: number }) | null;
   promoCodes: PromoCode[];
+  preAppliedPromo?: PromoCode | null;
+  setPreAppliedPromo?: (promo: PromoCode | null) => void;
 }) => {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const subtotal = cart.reduce((sum, item) => sum + (Number(item.price) || 0) * (item.quantity || 1), 0);
   const totalItems = cart.reduce((s, i) => s + (i.quantity || 1), 0);
   const grandTotal = subtotal + autoTransportFee;
+
+  useEffect(() => {
+    if (preAppliedPromo) {
+      setIsCheckoutOpen(true);
+    }
+  }, [preAppliedPromo]);
 
   // Beverage color palette by name keywords
   const getBevColor = (name: string) => {
@@ -4134,6 +4583,8 @@ const CartTab = ({ cart, removeFromCart, updateCartQuantity, onCheckout, isLoade
                 autoTransportFee={autoTransportFee}
                 nearestStore={nearestStore}
                 promoCodes={promoCodes}
+                preAppliedPromo={preAppliedPromo}
+                setPreAppliedPromo={setPreAppliedPromo}
               />
               <button
                 onClick={() => setIsCheckoutOpen(true)}
@@ -5686,7 +6137,445 @@ const ManagerOrdersTab = ({
   );
 };
 
-const ManagerDashboard = ({ user, setUser, products, setProducts, sales, orders, showSettingsModal, setShowSettingsModal }: { user: UserProfile, setUser: React.Dispatch<React.SetStateAction<UserProfile | null>>, products: Product[], setProducts: React.Dispatch<React.SetStateAction<Product[]>>, sales: Sale[], orders: Order[], showSettingsModal: boolean, setShowSettingsModal: (show: boolean) => void }) => {
+const CategoryEditModal = ({ 
+  isOpen, 
+  onClose, 
+  categories, 
+  setCategories 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  categories: Category[]; 
+  setCategories: React.Dispatch<React.SetStateAction<Category[]>>;
+}) => {
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [formData, setFormData] = useState<Partial<Category>>({ name: '', image: '', subCategories: [] });
+  const [newSub, setNewSub] = useState('');
+
+  if (!isOpen) return null;
+
+  const handleSave = async () => {
+    if (!formData.name) return;
+    const cat: Category = {
+      id: editingCategory?.id || formData.name,
+      name: formData.name,
+      image: formData.image || 'https://picsum.photos/300/300',
+      order: editingCategory?.order || categories.length,
+      subCategories: formData.subCategories || []
+    };
+
+    try {
+      const saved = await apiService.post('categories', cat);
+      if (editingCategory) {
+        setCategories(prev => prev.map(c => c.id === editingCategory.id ? saved : c));
+      } else {
+        setCategories(prev => [...prev, saved]);
+      }
+      setEditingCategory(null);
+      setFormData({ name: '', image: '', subCategories: [] });
+    } catch (err) {
+      console.error("Error saving category:", err);
+    }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setFormData({ ...formData, image: event.target?.result as string });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-[#1E293B] w-full max-w-2xl rounded-[32px] overflow-hidden flex flex-col max-h-[90vh] border border-gray-800 shadow-2xl">
+        <div className="p-6 border-b border-gray-800 flex justify-between items-center bg-[#0F172A]">
+          <h3 className="text-xl font-black text-white uppercase tracking-widest">Manage Item Categories</h3>
+          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl text-gray-400"><X size={20} /></button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar">
+          {/* Add/Edit Form */}
+          <div className="bg-[#0F172A] p-6 rounded-3xl border border-gray-800 space-y-6">
+            <h4 className="text-xs font-black text-[#0077B6] uppercase tracking-[0.2em]">{editingCategory ? 'Edit Category' : 'Add New Category'}</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Category Name (Primary)</label>
+                  <input 
+                    type="text" 
+                    value={formData.name} 
+                    onChange={e => setFormData({...formData, name: e.target.value})}
+                    placeholder="e.g. Beer, Spirits"
+                    className="w-full bg-[#1E293B] border border-gray-800 rounded-2xl px-4 py-4 text-white font-bold focus:border-[#0077B6] outline-none" 
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Category Image</label>
+                  <div className="flex items-center gap-4">
+                    <div className="w-20 h-20 rounded-2xl bg-[#1E293B] border border-gray-800 overflow-hidden flex items-center justify-center shrink-0">
+                      {formData.image ? <img src={formData.image} className="w-full h-full object-cover" /> : <ImageIcon size={24} className="text-gray-700" />}
+                    </div>
+                    <label className="flex-1 bg-[#1E293B] border border-gray-800 border-dashed rounded-2xl p-4 text-center cursor-pointer hover:border-[#0077B6] transition-all">
+                      <span className="text-xs font-bold text-gray-400">Upload Image</span>
+                      <input type="file" hidden onChange={handleImageChange} accept="image/*" />
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Sub Categories (Secondary)</label>
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      value={newSub} 
+                      onChange={e => setNewSub(e.target.value)}
+                      placeholder="Add sub-category..."
+                      className="flex-1 bg-[#1E293B] border border-gray-800 rounded-xl px-4 py-2 text-sm text-white focus:border-[#0077B6] outline-none" 
+                    />
+                    <button 
+                      onClick={() => {
+                        if (newSub) {
+                          setFormData({...formData, subCategories: [...(formData.subCategories || []), newSub]});
+                          setNewSub('');
+                        }
+                      }}
+                      className="bg-[#0077B6] text-white p-2 rounded-xl"
+                    >
+                      <Plus size={20} />
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {formData.subCategories?.map((sub, i) => (
+                      <span key={i} className="bg-[#1E293B] text-white text-[10px] font-bold px-3 py-1.5 rounded-lg border border-gray-700 flex items-center gap-2">
+                        {sub}
+                        <button onClick={() => setFormData({...formData, subCategories: formData.subCategories?.filter((_, idx) => idx !== i)})}><X size={12} /></button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button 
+                onClick={handleSave}
+                className="flex-1 bg-[#0077B6] text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-[#0077B6]/20 active:scale-95 transition-all"
+              >
+                {editingCategory ? 'Update Category' : 'Create Category'}
+              </button>
+              {editingCategory && (
+                <button 
+                  onClick={() => {
+                    setEditingCategory(null);
+                    setFormData({ name: '', image: '', subCategories: [] });
+                  }}
+                  className="px-6 bg-gray-800 text-white rounded-2xl font-black uppercase text-xs"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* List of Categories */}
+          <div className="space-y-4">
+            <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Existing Categories</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {categories.map(cat => (
+                <div key={cat.id} className="bg-[#0F172A] p-4 rounded-3xl border border-gray-800 flex items-center gap-4 group">
+                  <img src={cat.image} className="w-16 h-16 rounded-2xl object-cover" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-black text-white uppercase tracking-wider truncate">{cat.name}</p>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase mt-1">{cat.subCategories?.length || 0} Sub-categories</p>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setEditingCategory(cat);
+                      setFormData(cat);
+                    }}
+                    className="p-3 bg-[#1E293B] text-gray-400 rounded-2xl opacity-0 group-hover:opacity-100 hover:text-[#0077B6] transition-all"
+                  >
+                    <Edit2 size={18} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+const PromotionEditModal = ({ 
+  isOpen, 
+  onClose, 
+  promoCodes, 
+  setPromoCodes 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  promoCodes: PromoCode[]; 
+  setPromoCodes: React.Dispatch<React.SetStateAction<PromoCode[]>>;
+}) => {
+  const [editingPromo, setEditingPromo] = useState<PromoCode | null>(null);
+  const [formData, setFormData] = useState<Partial<PromoCode>>({
+    code: '',
+    type: 'percentage',
+    value: 0,
+    expiryDate: '',
+    minOrderAmount: 0,
+    description: ''
+  });
+
+  if (!isOpen) return null;
+
+  const handleSave = async () => {
+    if (!formData.code || !formData.value) return;
+    const promo: PromoCode = {
+      id: editingPromo?.id || Math.random().toString(36).substr(2, 9),
+      code: formData.code.toUpperCase(),
+      type: formData.type || 'percentage',
+      value: Number(formData.value),
+      expiryDate: formData.expiryDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      minOrderAmount: Number(formData.minOrderAmount) || 0,
+      description: formData.description || ''
+    };
+
+    try {
+      const saved = await apiService.post('promo_codes', promo);
+      if (editingPromo) {
+        setPromoCodes(prev => prev.map(p => p.id === editingPromo.id ? saved : p));
+      } else {
+        setPromoCodes(prev => [...prev, saved]);
+      }
+      setEditingPromo(null);
+      setFormData({ code: '', type: 'percentage', value: 0, expiryDate: '', minOrderAmount: 0, description: '' });
+    } catch (err) {
+      console.error("Error saving promo:", err);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-[#1E293B] w-full max-w-2xl rounded-[32px] overflow-hidden flex flex-col max-h-[90vh] border border-gray-800 shadow-2xl">
+        <div className="p-6 border-b border-gray-800 flex justify-between items-center bg-[#0F172A]">
+          <h3 className="text-xl font-black text-white uppercase tracking-widest">Store Promotions & Coupons</h3>
+          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl text-gray-400"><X size={20} /></button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar">
+          <div className="bg-[#0F172A] p-6 rounded-3xl border border-gray-800 space-y-6">
+            <h4 className="text-xs font-black text-orange-500 uppercase tracking-[0.2em]">{editingPromo ? 'Edit Promotion' : 'Create New Promotion'}</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Promo Code</label>
+                  <input 
+                    type="text" 
+                    value={formData.code} 
+                    onChange={e => setFormData({...formData, code: e.target.value})}
+                    placeholder="e.g. KARIBU20"
+                    className="w-full bg-[#1E293B] border border-gray-800 rounded-2xl px-4 py-4 text-white font-black uppercase tracking-widest focus:border-orange-500 outline-none" 
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Type</label>
+                    <select 
+                      value={formData.type}
+                      onChange={e => setFormData({...formData, type: e.target.value as any})}
+                      className="w-full bg-[#1E293B] border border-gray-800 rounded-2xl px-4 py-4 text-white font-bold outline-none"
+                    >
+                      <option value="percentage">Percentage (%)</option>
+                      <option value="flat">Flat Amount (TSh)</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Value</label>
+                    <input 
+                      type="number" 
+                      value={formData.value || ''} 
+                      onChange={e => setFormData({...formData, value: Number(e.target.value)})}
+                      placeholder="0"
+                      className="w-full bg-[#1E293B] border border-gray-800 rounded-2xl px-4 py-4 text-white font-bold outline-none" 
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Expiry Date</label>
+                  <input 
+                    type="date" 
+                    value={formData.expiryDate} 
+                    onChange={e => setFormData({...formData, expiryDate: e.target.value})}
+                    className="w-full bg-[#1E293B] border border-gray-800 rounded-2xl px-4 py-4 text-white font-bold outline-none" 
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Min Order Amount (TSh)</label>
+                  <input 
+                    type="number" 
+                    value={formData.minOrderAmount || ''} 
+                    onChange={e => setFormData({...formData, minOrderAmount: Number(e.target.value)})}
+                    placeholder="0"
+                    className="w-full bg-[#1E293B] border border-gray-800 rounded-2xl px-4 py-4 text-white font-bold outline-none" 
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Description / Words</label>
+              <textarea 
+                value={formData.description} 
+                onChange={e => setFormData({...formData, description: e.target.value})}
+                placeholder="Describe this promotion..."
+                className="w-full bg-[#1E293B] border border-gray-800 rounded-2xl px-4 py-4 text-white font-medium outline-none h-24 resize-none" 
+              />
+            </div>
+            <div className="flex gap-3">
+              <button 
+                onClick={handleSave}
+                className="flex-1 bg-orange-500 text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-orange-500/20 active:scale-95 transition-all"
+              >
+                {editingPromo ? 'Update Promotion' : 'Launch Promotion'}
+              </button>
+              {editingPromo && (
+                <button 
+                  onClick={() => {
+                    setEditingPromo(null);
+                    setFormData({ code: '', type: 'percentage', value: 0, expiryDate: '', minOrderAmount: 0, description: '' });
+                  }}
+                  className="px-6 bg-gray-800 text-white rounded-2xl font-black uppercase text-xs"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Active Promotions</h4>
+            <div className="space-y-3">
+              {promoCodes.map(promo => (
+                <div key={promo.id} className="bg-[#0F172A] p-5 rounded-[24px] border border-gray-800 flex justify-between items-center group">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-orange-500/10 text-orange-500 rounded-2xl flex items-center justify-center">
+                      <Ticket size={24} />
+                    </div>
+                    <div>
+                      <p className="font-black text-white uppercase tracking-widest">{promo.code}</p>
+                      <p className="text-[10px] text-gray-500 font-bold uppercase">{promo.description}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <p className="text-sm font-black text-white">{promo.type === 'percentage' ? `${promo.value}%` : `TSh ${formatMoney(promo.value)}`}</p>
+                      <p className="text-[9px] text-gray-600 font-bold uppercase">Exp: {new Date(promo.expiryDate).toLocaleDateString()}</p>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        setEditingPromo(promo);
+                        setFormData(promo);
+                      }}
+                      className="p-3 bg-[#1E293B] text-gray-400 rounded-xl opacity-0 group-hover:opacity-100 hover:text-orange-500 transition-all"
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+const HomePromoEditModal = ({ 
+  isOpen, 
+  onClose, 
+  ads, 
+  setAds 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  ads: Ad[]; 
+  setAds: React.Dispatch<React.SetStateAction<Ad[]>>;
+}) => {
+  if (!isOpen) return null;
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const newAd: Ad = {
+        id: Math.random().toString(36).substr(2, 9),
+        src: event.target?.result as string,
+        alt: 'Promotion Slide',
+        order: ads.length
+      };
+      try {
+        const saved = await apiService.post('ads', newAd);
+        setAds(prev => [...prev, saved]);
+      } catch (err) {
+        console.error("Error saving ad:", err);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await apiService.delete('ads', id);
+      setAds(prev => prev.filter(ad => ad.id !== id));
+    } catch (err) {
+      console.error("Error deleting ad:", err);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-[#1E293B] w-full max-w-2xl rounded-[32px] overflow-hidden flex flex-col max-h-[90vh] border border-gray-800 shadow-2xl">
+        <div className="p-6 border-b border-gray-800 flex justify-between items-center bg-[#0F172A]">
+          <h3 className="text-xl font-black text-white uppercase tracking-widest">Home Screen Promos</h3>
+          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl text-gray-400"><X size={20} /></button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {ads.map(ad => (
+              <div key={ad.id} className="relative aspect-[21/9] rounded-2xl overflow-hidden border border-gray-800 group">
+                <img src={ad.src} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
+                  <button 
+                    onClick={() => handleDelete(ad.id)}
+                    className="p-3 bg-red-500 text-white rounded-full hover:scale-110 transition-all"
+                  >
+                    <Trash2 size={20} />
+                  </button>
+                </div>
+              </div>
+            ))}
+            <label className="aspect-[21/9] rounded-2xl border-2 border-dashed border-gray-800 hover:border-[#0077B6] flex flex-col items-center justify-center gap-2 cursor-pointer transition-all bg-[#0F172A]/50">
+              <Plus size={32} className="text-[#0077B6]" />
+              <span className="text-xs font-black text-gray-500 uppercase tracking-widest">Add Promo Slide</span>
+              <input type="file" hidden onChange={handleImageUpload} accept="image/*" />
+            </label>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+const ManagerDashboard = ({ user, setUser, products, setProducts, sales, orders, showSettingsModal, setShowSettingsModal, categories, setCategories, promoCodes, setPromoCodes, ads, setAds }: { user: UserProfile, setUser: React.Dispatch<React.SetStateAction<UserProfile | null>>, products: Product[], setProducts: React.Dispatch<React.SetStateAction<Product[]>>, sales: Sale[], orders: Order[], showSettingsModal: boolean, setShowSettingsModal: (show: boolean) => void, categories: Category[], setCategories: React.Dispatch<React.SetStateAction<Category[]>>, promoCodes: PromoCode[], setPromoCodes: React.Dispatch<React.SetStateAction<PromoCode[]>>, ads: Ad[], setAds: React.Dispatch<React.SetStateAction<Ad[]>> }) => {
   const [showModal, setShowModal] = useState(false);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [scannerError, setScannerError] = useState<string | null>(null);
@@ -5703,6 +6592,9 @@ const ManagerDashboard = ({ user, setUser, products, setProducts, sales, orders,
   const [showScanner, setShowScanner] = useState(false);
   const [isFlashlightOn, setIsFlashlightOn] = useState(false);
   const [inventoryAdjustments, setInventoryAdjustments] = useState<{id: string, productId: string, amount: number, date: string}[]>([]);
+  const [showCategoryEditModal, setShowCategoryEditModal] = useState(false);
+  const [showPromotionEditModal, setShowPromotionEditModal] = useState(false);
+  const [showHomePromoEditModal, setShowHomePromoEditModal] = useState(false);
   
   const [formData, setFormData] = useState<Partial<Product> & { numCartons?: number }>({
     category: 'Beer > Local Beers',
@@ -6068,14 +6960,35 @@ const ManagerDashboard = ({ user, setUser, products, setProducts, sales, orders,
       </div>
       <div className="flex justify-between items-center px-6 sm:px-0">
         <div>
-          <h1 className="text-2xl font-bold text-white">Store Manager</h1>
-          <p className="text-[#d9d9d9]">Inventory & Sales Overview</p>
+          <KileoBevLogo width="140px" />
+          <p className="text-[#d9d9d9] mt-1">Inventory & Sales Overview</p>
         </div>
         <button 
           onClick={handleOpenAdd}
           className="bg-[#0077B6] text-white px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-[#005f8a] transition-all"
         >
           <Plus size={20} /> Add Item
+        </button>
+      </div>
+
+      <div className="flex flex-wrap gap-3 px-6 sm:px-0">
+        <button 
+          onClick={() => setShowCategoryEditModal(true)}
+          className="bg-[#1E293B] text-white px-4 py-3 rounded-2xl flex items-center gap-2 border border-gray-800 hover:border-gray-600 transition-all shadow-lg active:scale-95"
+        >
+          <Edit2 size={18} className="text-[#0077B6]" /> Item Category Edit
+        </button>
+        <button 
+          onClick={() => setShowPromotionEditModal(true)}
+          className="bg-[#1E293B] text-white px-4 py-3 rounded-2xl flex items-center gap-2 border border-gray-800 hover:border-gray-600 transition-all shadow-lg active:scale-95"
+        >
+          <Ticket size={18} className="text-orange-500" /> Edit Promotions
+        </button>
+        <button 
+          onClick={() => setShowHomePromoEditModal(true)}
+          className="bg-[#1E293B] text-white px-4 py-3 rounded-2xl flex items-center gap-2 border border-gray-800 hover:border-gray-600 transition-all shadow-lg active:scale-95"
+        >
+          <ImageIcon size={18} className="text-purple-500" /> Edit Home Promos
         </button>
       </div>
 
@@ -6103,7 +7016,7 @@ const ManagerDashboard = ({ user, setUser, products, setProducts, sales, orders,
 
           {/* Category Filter Chips */}
           <div className="flex gap-2 overflow-x-auto pt-[18px] pb-[18px] no-scrollbar scroll-smooth">
-            {['All', ...Object.keys(CATEGORIES)].map(cat => (
+            {['All', ...(categories.length > 0 ? categories.map(c => c.name) : Object.keys(CATEGORIES))].map(cat => (
               <button
                 key={cat}
                 onClick={() => setInventoryFilter(cat)}
@@ -6505,10 +7418,15 @@ const ManagerDashboard = ({ user, setUser, products, setProducts, sales, orders,
                     <div className="relative">
                       <select 
                         className="w-full bg-[#1E293B] border border-gray-700 rounded-2xl p-4 text-white focus:ring-2 focus:ring-[#0077B6] outline-none appearance-none cursor-pointer"
-                        value={formData.category?.split(' > ')[0] || Object.keys(CATEGORIES)[0]}
-                        onChange={e => setFormData({ ...formData, category: `${e.target.value} > ${CATEGORIES[e.target.value as keyof typeof CATEGORIES][0]}` })}
+                        value={formData.category?.split(' > ')[0] || (categories.length > 0 ? categories[0].name : Object.keys(CATEGORIES)[0])}
+                        onChange={e => {
+                          const primary = e.target.value;
+                          const catObj = categories.find(c => c.name === primary);
+                          const sub = catObj?.subCategories?.[0] || CATEGORIES[primary as keyof typeof CATEGORIES]?.[0] || '';
+                          setFormData({ ...formData, category: `${primary} > ${sub}` });
+                        }}
                       >
-                        {Object.keys(CATEGORIES).map(c => <option key={c} value={c}>{c}</option>)}
+                        {(categories.length > 0 ? categories.map(c => c.name) : Object.keys(CATEGORIES)).map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                       <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
                         <ChevronDown size={18} />
@@ -6521,13 +7439,14 @@ const ManagerDashboard = ({ user, setUser, products, setProducts, sales, orders,
                     <div className="relative">
                       <select 
                         className="w-full bg-[#1E293B] border border-gray-700 rounded-2xl p-4 text-white focus:ring-2 focus:ring-[#0077B6] outline-none appearance-none cursor-pointer"
-                        value={formData.category?.split(' > ')[1] || CATEGORIES[Object.keys(CATEGORIES)[0] as keyof typeof CATEGORIES][0]}
-                        onChange={e => setFormData({ ...formData, category: `${formData.category?.split(' > ')[0] || Object.keys(CATEGORIES)[0]} > ${e.target.value}` })}
+                        value={formData.category?.split(' > ')[1] || ''}
+                        onChange={e => setFormData({ ...formData, category: `${formData.category?.split(' > ')[0]} > ${e.target.value}` })}
                       >
                         {(() => {
-                          const primary = formData.category?.split(' > ')[0] || Object.keys(CATEGORIES)[0];
-                          const options = CATEGORIES[primary];
-                          return Array.isArray(options) ? options.map(c => <option key={c} value={c}>{c}</option>) : null;
+                          const primary = formData.category?.split(' > ')[0] || (categories.length > 0 ? categories[0].name : Object.keys(CATEGORIES)[0]);
+                          const catObj = categories.find(c => c.name === primary);
+                          const options = catObj?.subCategories || CATEGORIES[primary as keyof typeof CATEGORIES] || [];
+                          return options.map(c => <option key={c} value={c}>{c}</option>);
                         })()}
                       </select>
                       <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
@@ -6929,6 +7848,25 @@ const ManagerDashboard = ({ user, setUser, products, setProducts, sales, orders,
           </div>
         </div>
       )}
+
+      <CategoryEditModal 
+        isOpen={showCategoryEditModal} 
+        onClose={() => setShowCategoryEditModal(false)} 
+        categories={categories} 
+        setCategories={setCategories} 
+      />
+      <PromotionEditModal 
+        isOpen={showPromotionEditModal} 
+        onClose={() => setShowPromotionEditModal(false)} 
+        promoCodes={promoCodes} 
+        setPromoCodes={setPromoCodes} 
+      />
+      <HomePromoEditModal 
+        isOpen={showHomePromoEditModal} 
+        onClose={() => setShowHomePromoEditModal(false)} 
+        ads={ads} 
+        setAds={setAds} 
+      />
     </div>
   );
 };
@@ -7007,7 +7945,7 @@ const AuthScreen = ({ externalError, setUser, onGuest }: { externalError?: strin
 
         <div className="flex-grow flex flex-col items-center justify-center p-6 space-y-8 max-w-sm mx-auto w-full">
           <div className="text-center space-y-2">
-            <h1 className="text-[64px] font-black text-[#ff6b00] tracking-tighter italic leading-none">KileoBev</h1>
+            <KileoBevLogo width="200px" />
           </div>
 
           <div className="w-full bg-white p-8 rounded-[40px] shadow-sm border border-gray-100 space-y-6">
@@ -7081,7 +8019,7 @@ const AuthScreen = ({ externalError, setUser, onGuest }: { externalError?: strin
 
       <div className="flex-grow p-4 space-y-4">
         <div className="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100 flex flex-col items-center space-y-8">
-        <h1 className="text-[64px] font-black text-[#ff6b00] tracking-tighter italic leading-none">KileoBev</h1>
+        <KileoBevLogo width="200px" />
         
         <div className="w-full space-y-4">
           <h2 className="text-3xl font-bold text-center text-gray-900 tracking-tight">New Customer</h2>
@@ -7333,6 +8271,7 @@ export default function App() {
     { id: '2', code: 'BEV5K', type: 'flat', value: 5000, expiryDate: '2026-06-30', description: 'TSh 5,000 off on orders above 50,000', minOrderAmount: 50000 }
   ]);
   const [showFinancialDetail, setShowFinancialDetail] = useState<'profit' | 'expenses' | 'revenue' | 'stock' | 'inventory_asset' | 'accounts' | null>(null);
+  const [preAppliedPromo, setPreAppliedPromo] = useState<PromoCode | null>(null);
 
   const nearestStore = useMemo(() => {
     if (!user || user.role === 'manager' || allManagers.length === 0) return null;
@@ -8536,6 +9475,7 @@ export default function App() {
       autoTransportFee={autoTransportFee}
       nearestStore={nearestStore}
       promoCodes={promoCodes}
+      setPromoCodes={setPromoCodes}
       showExpenseModal={showExpenseModal}
       setShowExpenseModal={setShowExpenseModal}
       showPurchaseOrderModal={showPurchaseOrderModal}
@@ -8592,6 +9532,8 @@ export default function App() {
       updateCartQuantity={updateCartQuantity}
       handleSaveVendor={handleSaveVendor}
       selectedCustomer={selectedCustomer}
+      preAppliedPromo={preAppliedPromo}
+      setPreAppliedPromo={setPreAppliedPromo}
     />
   );
 }
@@ -8605,7 +9547,7 @@ const AppLayout = ({
   fetchErrorCount, isWholesale, setIsWholesale, showSettingsModal, setShowSettingsModal, 
   showFinancialDetail, setShowFinancialDetail, stockValue, totalExpenses, actualRevenue, 
   actualCOGS, expiredCost, actualVat, actualNetProfit, accountBalances, totalCashBank, 
-  todayOrdersCount, reorderProductsCount, autoTransportFee, nearestStore, promoCodes, 
+  todayOrdersCount, reorderProductsCount, autoTransportFee, nearestStore, promoCodes, setPromoCodes,
   showExpenseModal, setShowExpenseModal, showPurchaseOrderModal, setShowPurchaseOrderModal, 
   showExpensesDashboardModal, setShowExpensesDashboardModal, showAddVendorModal, setShowAddVendorModal, 
   showReceiveInventoryModal, setShowReceiveInventoryModal, poDraftItems, setPoDraftItems, 
@@ -8617,7 +9559,8 @@ const AppLayout = ({
   handleDeleteOrderItem, handleUpdateOrderGroupStatus, handleCheckout, handleSaveSettings, 
   settingsForm, setSettingsForm, isSavingSettings, isClearingData, handleClearAllData, 
   isConfigOpen, setIsConfigOpen, userApiKey, saveApiKey, isProfileOpen,
-  removeFromCart, updateCartQuantity, handleSaveVendor, selectedCustomer
+  removeFromCart, updateCartQuantity, handleSaveVendor, selectedCustomer,
+  preAppliedPromo, setPreAppliedPromo
 }: any) => {
   if (!user && !isGuest) {
     return <AuthScreen externalError={authError} setUser={setUser} onGuest={() => setIsGuest(true)} />;
@@ -8669,6 +9612,7 @@ const AppLayout = ({
                   ads={ads} 
                   quickActions={quickActions} 
                   categories={categories} 
+                  promoCodes={promoCodes}
                   setShowSettingsModal={setShowSettingsModal} 
                   addToCart={addToCart} 
                   purchaseOrders={purchaseOrders} 
@@ -8682,13 +9626,14 @@ const AppLayout = ({
                   actualNetProfit={actualNetProfit}
                   totalCashBank={totalCashBank}
                   expiredCost={expiredCost}
+                  setPreAppliedPromo={setPreAppliedPromo}
                 />} />
                 <Route path="/products" element={<ProductsTab products={products} categories={categories} isWholesale={isWholesale} setIsWholesale={setIsWholesale} addToCart={addToCart} userRole={user?.role || 'client'} isLoaded={isLoaded} searchQuery={searchQuery} setSearchQuery={setSearchQuery} cartCount={cart.length} />} />
                 <Route path="/chat" element={<ChatTab />} />
-                <Route path="/cart" element={<CartTab cart={cart} removeFromCart={removeFromCart} updateCartQuantity={updateCartQuantity} onCheckout={handleCheckout} isLoaded={isLoaded} userName={user?.role === 'manager' && selectedCustomer ? selectedCustomer.name : (user?.name || 'Guest')} userPhone={user?.phone} selectedCustomer={user?.role === 'manager' ? selectedCustomer : null} vehicles={vehicles} paymentMethods={paymentMethods} autoTransportFee={autoTransportFee} nearestStore={nearestStore} promoCodes={promoCodes} />} />
+                <Route path="/cart" element={<CartTab cart={cart} removeFromCart={removeFromCart} updateCartQuantity={updateCartQuantity} onCheckout={handleCheckout} isLoaded={isLoaded} userName={user?.role === 'manager' && selectedCustomer ? selectedCustomer.name : (user?.name || 'Guest')} userPhone={user?.phone} selectedCustomer={user?.role === 'manager' ? selectedCustomer : null} vehicles={vehicles} paymentMethods={paymentMethods} autoTransportFee={autoTransportFee} nearestStore={nearestStore} promoCodes={promoCodes} preAppliedPromo={preAppliedPromo} setPreAppliedPromo={setPreAppliedPromo} />} />
                 {user?.role === 'manager' && (
                   <>
-                    <Route path="/manager" element={<ManagerDashboard user={user} setUser={setUser} products={products} setProducts={setProducts} sales={sales} orders={orders} showSettingsModal={showSettingsModal} setShowSettingsModal={setShowSettingsModal} />} />
+                    <Route path="/manager" element={<ManagerDashboard user={user} setUser={setUser} products={products} setProducts={setProducts} sales={sales} orders={orders} showSettingsModal={showSettingsModal} setShowSettingsModal={setShowSettingsModal} categories={categories} setCategories={setCategories} promoCodes={promoCodes} setPromoCodes={setPromoCodes} ads={ads} setAds={setAds} />} />
                     <Route path="/orders" element={<ManagerOrdersTab 
                       orders={orders} 
                       products={products} 
@@ -9837,6 +10782,7 @@ const AppLayout = ({
                   onClose={() => setIsProfileOpen(false)} 
                   setUser={setUser}
                   promoCodes={promoCodes}
+                  orders={orders}
                   onOpenMapConfig={() => {
                     setIsProfileOpen(false);
                     setIsConfigOpen(true);
