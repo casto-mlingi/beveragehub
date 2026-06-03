@@ -10,8 +10,7 @@ import { auth } from './firebase';
 import logo from './assets/logo.png';
 
 
-// import { CATEGORIES } from './categories';
-// ... existing imports ...
+import autoTable from 'jspdf-autotable';
 import { HashRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Home, ShoppingCart, User, Package, Search, Plus, Truck, Store, Trash2, ArrowLeft, MapPin, Clock, Info, ChevronLeft, ChevronRight, ChevronDown, X, Phone, MessageSquare, Navigation, MessageCircle, Send, Bot, User as UserIcon, Camera, Image as ImageIcon, Paperclip, Edit2, Barcode, Scan, Flashlight, FlashlightOff, Calculator, TrendingUp, DollarSign, AlertTriangle, BarChart3, Settings, Users, Upload, PackagePlus, FileText, Calendar, Shield, ExternalLink, Check, ShoppingBag, GlassWater, Share2, Ticket, Beer, Gift, Star, Zap, Coffee, Wine, Copy, LayoutGrid, ClipboardList } from 'lucide-react';
@@ -23,7 +22,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { Autocomplete, GoogleMap, useJsApiLoader } from '@react-google-maps/api';
 import { GoogleGenAI } from "@google/genai";
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { CATEGORIES } from './categories';
 
 type Expense = {
   id: string;
@@ -103,6 +102,8 @@ type PromoCode = {
   expiryDate: string;
   minOrderAmount?: number;
   description: string;
+  category?: string;
+  subCategory?: string;
 };
 
 interface FinancialDetailData {
@@ -168,7 +169,7 @@ type Ad = { id: string; src: string; alt?: string; order?: number };
 type Vehicle = { id: string; name: string; capacity: string; price: string; time: string; icon: string };
 type PaymentMethod = { id: string; name: string; icon?: string; color?: string };
 type QuickAction = { id: string; iconName: string; label: string; order?: number };
-type Category = { id: string; name: string; image?: string; order?: number; subCategories?: string[] };
+type Category = { id: string; name: string; image?: string; order?: number };
 
 type Vendor = {
   id: string;
@@ -393,17 +394,6 @@ const INITIAL_PRODUCTS: Product[] = [
     ]
   },
 ];
-
-const CATEGORIES: Record<string, string[]> = {
-  'Beer': ['Local Beers', 'Imported Beers', 'Malts n Ciders'],
-  'Spirits': ['Whiskey', 'Tequila', 'Cognac', 'Vodka', 'Gin', 'Liqueurs', 'Rum'],
-  'Red Wines': ['Premium Red', 'Red Blends', 'Cabernet Sauvignon', 'Pinot Noir & Pinotage', 'Malbec & Merlot', 'Rosé'],
-  'White Wines': ['Premium Whites', 'White Blends', 'Chardonnay', 'Sauvignon & Chenin Blanc', 'Moscato'],
-  'Bubbles': ['Sparkling Wine', 'Champagne', 'Non Alcoholic'],
-  'Soft Drinks': ['Juices & Energy Drinks', 'Sodas & Water'],
-  'Extras': ['Smoke Shop', 'Snacks', 'Party Essential', 'Self Care'],
-  'Hampers & Gifts': ['Hampers', 'Drink Combo\'s']
-};
 
 const formatMoney = (val: string | number | undefined | null) => {
   if (val === undefined || val === null) return '0';
@@ -2998,7 +2988,8 @@ const ProductsTab = ({
   isLoaded,
   searchQuery,
   setSearchQuery,
-  cartCount = 0
+  cartCount = 0,
+  promoCodes = []
 }: { 
   products: Product[]; 
   categories: any[];
@@ -3010,6 +3001,7 @@ const ProductsTab = ({
   searchQuery?: string;
   setSearchQuery?: (q: string) => void;
   cartCount?: number;
+  promoCodes?: PromoCode[];
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -3160,38 +3152,46 @@ const ProductsTab = ({
           ))}
         </div>
 
-        {category === 'Beer' && (
+        {promoCodes.some(p => p.category === category) && (
           <div className="px-6 mt-6">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-orange-500 to-[#ff6b00] p-8 text-white shadow-2xl shadow-orange-500/20"
-            >
-              <div className="relative z-10 flex flex-col gap-2">
-                <div className="flex items-center gap-2 bg-white/20 w-fit px-3 py-1 rounded-full backdrop-blur-sm">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-white">Weekly Special</span>
-                </div>
-                <h3 className="text-3xl font-black leading-tight tracking-tight">KILI SPECIAL<br />OFFER</h3>
-                <p className="text-sm font-medium opacity-90 max-w-[220px] leading-relaxed">
-                  Get up to <span className="text-white font-black underline decoration-2 underline-offset-4">15% OFF</span> on all local beer crates this weekend!
-                </p>
-                <div className="flex items-center gap-4 mt-6">
-                  <button className="rounded-[1.25rem] bg-white px-6 py-3.5 text-sm font-black text-[#ff6b00] active:scale-95 transition-all shadow-xl shadow-black/10">
-                    REDEEM NOW
-                  </button>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-bold uppercase opacity-60">Ends in</span>
-                    <span className="text-sm font-black">2d : 14h : 05m</span>
+            {(() => {
+              const promo = promoCodes.find(p => p.category === category);
+              if (!promo) return null;
+              return (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-orange-500 to-[#ff6b00] p-8 text-white shadow-2xl shadow-orange-500/20"
+                >
+                  <div className="relative z-10 flex flex-col gap-2">
+                    <div className="flex items-center gap-2 bg-white/20 w-fit px-3 py-1 rounded-full backdrop-blur-sm">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-white">Category Promotion</span>
+                    </div>
+                    <h3 className="text-3xl font-black leading-tight tracking-tight">{promo.code}</h3>
+                    <p className="text-sm font-medium opacity-90 max-w-[220px] leading-relaxed">
+                      {promo.description}
+                    </p>
+                    <div className="flex items-center gap-4 mt-6">
+                      <button className="rounded-[1.25rem] bg-white px-6 py-3.5 text-sm font-black text-[#ff6b00] active:scale-95 transition-all shadow-xl shadow-black/10">
+                        REDEEM NOW
+                      </button>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-bold uppercase opacity-60">Offer</span>
+                        <span className="text-sm font-black">
+                          {promo.type === 'percentage' ? `${promo.value}% OFF` : `TSh ${formatMoney(promo.value)} OFF`}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-              <div className="absolute -right-8 -bottom-8 h-48 w-48 rotate-12 opacity-10 blur-[2px]">
-                <Beer size={180} strokeWidth={1} />
-              </div>
-              <div className="absolute right-6 top-8 h-24 w-24 opacity-30 animate-pulse">
-                <div className="w-full h-full rounded-full border-4 border-white/20" />
-              </div>
-            </motion.div>
+                  <div className="absolute -right-8 -bottom-8 h-48 w-48 rotate-12 opacity-10 blur-[2px]">
+                    <Ticket size={180} strokeWidth={1} />
+                  </div>
+                  <div className="absolute right-6 top-8 h-24 w-24 opacity-30 animate-pulse">
+                    <div className="w-full h-full rounded-full border-4 border-white/20" />
+                  </div>
+                </motion.div>
+              );
+            })()}
           </div>
         )}
 
@@ -6149,8 +6149,7 @@ const CategoryEditModal = ({
   setCategories: React.Dispatch<React.SetStateAction<Category[]>>;
 }) => {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [formData, setFormData] = useState<Partial<Category>>({ name: '', image: '', subCategories: [] });
-  const [newSub, setNewSub] = useState('');
+  const [formData, setFormData] = useState<Partial<Category>>({ name: '', image: '' });
 
   if (!isOpen) return null;
 
@@ -6160,8 +6159,7 @@ const CategoryEditModal = ({
       id: editingCategory?.id || formData.name,
       name: formData.name,
       image: formData.image || 'https://picsum.photos/300/300',
-      order: editingCategory?.order || categories.length,
-      subCategories: formData.subCategories || []
+      order: editingCategory?.order || categories.length
     };
 
     try {
@@ -6172,7 +6170,7 @@ const CategoryEditModal = ({
         setCategories(prev => [...prev, saved]);
       }
       setEditingCategory(null);
-      setFormData({ name: '', image: '', subCategories: [] });
+      setFormData({ name: '', image: '' });
     } catch (err) {
       console.error("Error saving category:", err);
     }
@@ -6189,18 +6187,18 @@ const CategoryEditModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-[#1E293B] w-full max-w-2xl rounded-[32px] overflow-hidden flex flex-col max-h-[90vh] border border-gray-800 shadow-2xl">
-        <div className="p-6 border-b border-gray-800 flex justify-between items-center bg-[#0F172A]">
+    <div className="fixed inset-0 z-[200] bg-[#0F172A] flex flex-col">
+      <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} className="flex flex-col h-full w-full bg-[#0F172A]">
+        <div className="p-6 border-b border-gray-800 flex justify-between items-center bg-[#0F172A] sticky top-0 z-10">
           <h3 className="text-xl font-black text-white uppercase tracking-widest">Manage Item Categories</h3>
-          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl text-gray-400"><X size={20} /></button>
+          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl text-gray-400"><X size={24} /></button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar">
+        <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar pb-32">
           {/* Add/Edit Form */}
           <div className="bg-[#0F172A] p-6 rounded-3xl border border-gray-800 space-y-6">
             <h4 className="text-xs font-black text-[#0077B6] uppercase tracking-[0.2em]">{editingCategory ? 'Edit Category' : 'Add New Category'}</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6">
               <div className="space-y-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Category Name (Primary)</label>
@@ -6225,39 +6223,6 @@ const CategoryEditModal = ({
                   </div>
                 </div>
               </div>
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Sub Categories (Secondary)</label>
-                  <div className="flex gap-2">
-                    <input 
-                      type="text" 
-                      value={newSub} 
-                      onChange={e => setNewSub(e.target.value)}
-                      placeholder="Add sub-category..."
-                      className="flex-1 bg-[#1E293B] border border-gray-800 rounded-xl px-4 py-2 text-sm text-white focus:border-[#0077B6] outline-none" 
-                    />
-                    <button 
-                      onClick={() => {
-                        if (newSub) {
-                          setFormData({...formData, subCategories: [...(formData.subCategories || []), newSub]});
-                          setNewSub('');
-                        }
-                      }}
-                      className="bg-[#0077B6] text-white p-2 rounded-xl"
-                    >
-                      <Plus size={20} />
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {formData.subCategories?.map((sub, i) => (
-                      <span key={i} className="bg-[#1E293B] text-white text-[10px] font-bold px-3 py-1.5 rounded-lg border border-gray-700 flex items-center gap-2">
-                        {sub}
-                        <button onClick={() => setFormData({...formData, subCategories: formData.subCategories?.filter((_, idx) => idx !== i)})}><X size={12} /></button>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
             </div>
             <div className="flex gap-3">
               <button 
@@ -6270,7 +6235,7 @@ const CategoryEditModal = ({
                 <button 
                   onClick={() => {
                     setEditingCategory(null);
-                    setFormData({ name: '', image: '', subCategories: [] });
+                    setFormData({ name: '', image: '' });
                   }}
                   className="px-6 bg-gray-800 text-white rounded-2xl font-black uppercase text-xs"
                 >
@@ -6289,7 +6254,6 @@ const CategoryEditModal = ({
                   <img src={cat.image} className="w-16 h-16 rounded-2xl object-cover" />
                   <div className="flex-1 min-w-0">
                     <p className="font-black text-white uppercase tracking-wider truncate">{cat.name}</p>
-                    <p className="text-[10px] text-gray-500 font-bold uppercase mt-1">{cat.subCategories?.length || 0} Sub-categories</p>
                   </div>
                   <button 
                     onClick={() => {
@@ -6314,12 +6278,14 @@ const PromotionEditModal = ({
   isOpen, 
   onClose, 
   promoCodes, 
-  setPromoCodes 
+  setPromoCodes,
+  categories
 }: { 
   isOpen: boolean; 
   onClose: () => void; 
   promoCodes: PromoCode[]; 
   setPromoCodes: React.Dispatch<React.SetStateAction<PromoCode[]>>;
+  categories: Category[];
 }) => {
   const [editingPromo, setEditingPromo] = useState<PromoCode | null>(null);
   const [formData, setFormData] = useState<Partial<PromoCode>>({
@@ -6328,7 +6294,9 @@ const PromotionEditModal = ({
     value: 0,
     expiryDate: '',
     minOrderAmount: 0,
-    description: ''
+    description: '',
+    category: '',
+    subCategory: ''
   });
 
   if (!isOpen) return null;
@@ -6342,7 +6310,9 @@ const PromotionEditModal = ({
       value: Number(formData.value),
       expiryDate: formData.expiryDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       minOrderAmount: Number(formData.minOrderAmount) || 0,
-      description: formData.description || ''
+      description: formData.description || '',
+      category: formData.category,
+      subCategory: formData.subCategory
     };
 
     try {
@@ -6353,21 +6323,21 @@ const PromotionEditModal = ({
         setPromoCodes(prev => [...prev, saved]);
       }
       setEditingPromo(null);
-      setFormData({ code: '', type: 'percentage', value: 0, expiryDate: '', minOrderAmount: 0, description: '' });
+      setFormData({ code: '', type: 'percentage', value: 0, expiryDate: '', minOrderAmount: 0, description: '', category: '', subCategory: '' });
     } catch (err) {
       console.error("Error saving promo:", err);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-[#1E293B] w-full max-w-2xl rounded-[32px] overflow-hidden flex flex-col max-h-[90vh] border border-gray-800 shadow-2xl">
-        <div className="p-6 border-b border-gray-800 flex justify-between items-center bg-[#0F172A]">
+    <div className="fixed inset-0 z-[200] bg-[#0F172A] flex flex-col">
+      <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} className="flex flex-col h-full w-full bg-[#0F172A]">
+        <div className="p-6 border-b border-gray-800 flex justify-between items-center bg-[#0F172A] sticky top-0 z-10">
           <h3 className="text-xl font-black text-white uppercase tracking-widest">Store Promotions & Coupons</h3>
-          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl text-gray-400"><X size={20} /></button>
+          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl text-gray-400"><X size={24} /></button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar">
+        <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar pb-32">
           <div className="bg-[#0F172A] p-6 rounded-3xl border border-gray-800 space-y-6">
             <h4 className="text-xs font-black text-orange-500 uppercase tracking-[0.2em]">{editingPromo ? 'Edit Promotion' : 'Create New Promotion'}</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -6427,6 +6397,33 @@ const PromotionEditModal = ({
                   />
                 </div>
               </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Primary Category (Optional)</label>
+                <select 
+                  className="w-full bg-[#1E293B] border border-gray-800 rounded-2xl px-4 py-4 text-white font-bold outline-none"
+                  value={formData.category || ''}
+                  onChange={e => setFormData({...formData, category: e.target.value, subCategory: ''})}
+                >
+                  <option value="">All Categories</option>
+                  {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Secondary Category (Optional)</label>
+                <select 
+                  className="w-full bg-[#1E293B] border border-gray-800 rounded-2xl px-4 py-4 text-white font-bold outline-none"
+                  value={formData.subCategory || ''}
+                  onChange={e => setFormData({...formData, subCategory: e.target.value})}
+                  disabled={!formData.category}
+                >
+                  <option value="">All Sub-categories</option>
+                  {formData.category && (CATEGORIES[formData.category as keyof typeof CATEGORIES] || []).map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Description / Words</label>
@@ -6448,7 +6445,7 @@ const PromotionEditModal = ({
                 <button 
                   onClick={() => {
                     setEditingPromo(null);
-                    setFormData({ code: '', type: 'percentage', value: 0, expiryDate: '', minOrderAmount: 0, description: '' });
+                    setFormData({ code: '', type: 'percentage', value: 0, expiryDate: '', minOrderAmount: 0, description: '', category: '', subCategory: '' });
                   }}
                   className="px-6 bg-gray-800 text-white rounded-2xl font-black uppercase text-xs"
                 >
@@ -6541,14 +6538,14 @@ const HomePromoEditModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-[#1E293B] w-full max-w-2xl rounded-[32px] overflow-hidden flex flex-col max-h-[90vh] border border-gray-800 shadow-2xl">
-        <div className="p-6 border-b border-gray-800 flex justify-between items-center bg-[#0F172A]">
+    <div className="fixed inset-0 z-[200] bg-[#0F172A] flex flex-col">
+      <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} className="flex flex-col h-full w-full bg-[#0F172A]">
+        <div className="p-6 border-b border-gray-800 flex justify-between items-center bg-[#0F172A] sticky top-0 z-10">
           <h3 className="text-xl font-black text-white uppercase tracking-widest">Home Screen Promos</h3>
-          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl text-gray-400"><X size={20} /></button>
+          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl text-gray-400"><X size={24} /></button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar pb-32">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {ads.map(ad => (
               <div key={ad.id} className="relative aspect-[21/9] rounded-2xl overflow-hidden border border-gray-800 group">
@@ -6971,24 +6968,27 @@ const ManagerDashboard = ({ user, setUser, products, setProducts, sales, orders,
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-3 px-6 sm:px-0">
+      <div className="flex flex-wrap gap-4 px-6 sm:px-0">
         <button 
           onClick={() => setShowCategoryEditModal(true)}
-          className="bg-[#1E293B] text-white px-4 py-3 rounded-2xl flex items-center gap-2 border border-gray-800 hover:border-gray-600 transition-all shadow-lg active:scale-95"
+          className="bg-[#1E293B] text-white p-4 rounded-2xl flex items-center justify-center border border-gray-800 hover:border-[#0077B6] transition-all shadow-lg active:scale-95 group"
+          title="Item Category Edit"
         >
-          <Edit2 size={18} className="text-[#0077B6]" /> Item Category Edit
+          <Edit2 size={24} className="text-[#0077B6] group-hover:scale-110 transition-transform" />
         </button>
         <button 
           onClick={() => setShowPromotionEditModal(true)}
-          className="bg-[#1E293B] text-white px-4 py-3 rounded-2xl flex items-center gap-2 border border-gray-800 hover:border-gray-600 transition-all shadow-lg active:scale-95"
+          className="bg-[#1E293B] text-white p-4 rounded-2xl flex items-center justify-center border border-gray-800 hover:border-orange-500 transition-all shadow-lg active:scale-95 group"
+          title="Edit Promotions"
         >
-          <Ticket size={18} className="text-orange-500" /> Edit Promotions
+          <Ticket size={24} className="text-orange-500 group-hover:scale-110 transition-transform" />
         </button>
         <button 
           onClick={() => setShowHomePromoEditModal(true)}
-          className="bg-[#1E293B] text-white px-4 py-3 rounded-2xl flex items-center gap-2 border border-gray-800 hover:border-gray-600 transition-all shadow-lg active:scale-95"
+          className="bg-[#1E293B] text-white p-4 rounded-2xl flex items-center justify-center border border-gray-800 hover:border-purple-500 transition-all shadow-lg active:scale-95 group"
+          title="Edit Home Promos"
         >
-          <ImageIcon size={18} className="text-purple-500" /> Edit Home Promos
+          <ImageIcon size={24} className="text-purple-500 group-hover:scale-110 transition-transform" />
         </button>
       </div>
 
@@ -7421,8 +7421,7 @@ const ManagerDashboard = ({ user, setUser, products, setProducts, sales, orders,
                         value={formData.category?.split(' > ')[0] || (categories.length > 0 ? categories[0].name : Object.keys(CATEGORIES)[0])}
                         onChange={e => {
                           const primary = e.target.value;
-                          const catObj = categories.find(c => c.name === primary);
-                          const sub = catObj?.subCategories?.[0] || CATEGORIES[primary as keyof typeof CATEGORIES]?.[0] || '';
+                          const sub = CATEGORIES[primary as keyof typeof CATEGORIES]?.[0] || '';
                           setFormData({ ...formData, category: `${primary} > ${sub}` });
                         }}
                       >
@@ -7444,8 +7443,7 @@ const ManagerDashboard = ({ user, setUser, products, setProducts, sales, orders,
                       >
                         {(() => {
                           const primary = formData.category?.split(' > ')[0] || (categories.length > 0 ? categories[0].name : Object.keys(CATEGORIES)[0]);
-                          const catObj = categories.find(c => c.name === primary);
-                          const options = catObj?.subCategories || CATEGORIES[primary as keyof typeof CATEGORIES] || [];
+                          const options = CATEGORIES[primary as keyof typeof CATEGORIES] || [];
                           return options.map(c => <option key={c} value={c}>{c}</option>);
                         })()}
                       </select>
@@ -7857,9 +7855,10 @@ const ManagerDashboard = ({ user, setUser, products, setProducts, sales, orders,
       />
       <PromotionEditModal 
         isOpen={showPromotionEditModal} 
-        onClose={() => setShowPromotionEditModal(false)} 
-        promoCodes={promoCodes} 
-        setPromoCodes={setPromoCodes} 
+        onClose={() => setShowPromotionEditModal(false)}
+        promoCodes={promoCodes}
+        setPromoCodes={setPromoCodes}
+        categories={categories}
       />
       <HomePromoEditModal 
         isOpen={showHomePromoEditModal} 
@@ -9628,7 +9627,7 @@ const AppLayout = ({
                   expiredCost={expiredCost}
                   setPreAppliedPromo={setPreAppliedPromo}
                 />} />
-                <Route path="/products" element={<ProductsTab products={products} categories={categories} isWholesale={isWholesale} setIsWholesale={setIsWholesale} addToCart={addToCart} userRole={user?.role || 'client'} isLoaded={isLoaded} searchQuery={searchQuery} setSearchQuery={setSearchQuery} cartCount={cart.length} />} />
+                <Route path="/products" element={<ProductsTab products={products} categories={categories} isWholesale={isWholesale} setIsWholesale={setIsWholesale} addToCart={addToCart} userRole={user?.role || 'client'} isLoaded={isLoaded} searchQuery={searchQuery} setSearchQuery={setSearchQuery} cartCount={cart.length} promoCodes={promoCodes} />} />
                 <Route path="/chat" element={<ChatTab />} />
                 <Route path="/cart" element={<CartTab cart={cart} removeFromCart={removeFromCart} updateCartQuantity={updateCartQuantity} onCheckout={handleCheckout} isLoaded={isLoaded} userName={user?.role === 'manager' && selectedCustomer ? selectedCustomer.name : (user?.name || 'Guest')} userPhone={user?.phone} selectedCustomer={user?.role === 'manager' ? selectedCustomer : null} vehicles={vehicles} paymentMethods={paymentMethods} autoTransportFee={autoTransportFee} nearestStore={nearestStore} promoCodes={promoCodes} preAppliedPromo={preAppliedPromo} setPreAppliedPromo={setPreAppliedPromo} />} />
                 {user?.role === 'manager' && (

@@ -175,6 +175,15 @@ async function startServer() {
         await pool.query("ALTER TABLE orders ADD COLUMN IF NOT EXISTS dest_lng NUMERIC");
         await pool.query("ALTER TABLE orders ADD COLUMN IF NOT EXISTS promo_code TEXT");
 
+        // Categories migrations
+        await pool.query("ALTER TABLE categories ADD COLUMN IF NOT EXISTS sub_categories TEXT");
+        await pool.query("ALTER TABLE categories ADD COLUMN IF NOT EXISTS image TEXT");
+        await pool.query("ALTER TABLE categories ADD COLUMN IF NOT EXISTS \"order\" INTEGER DEFAULT 0");
+
+        // Promo codes migrations
+        await pool.query("ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS category TEXT");
+        await pool.query("ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS sub_category TEXT");
+
         console.log(`[DB] Migrations completed in ${Date.now() - migrationStart}ms`);
       } catch (e) {
         console.error("Migration error:", e);
@@ -385,7 +394,7 @@ async function startServer() {
   const entities = [
     'users', 'products', 'customers', 'vendors', 
     'expenses', 'orders', 'sales', 'purchase_orders', 'inventory_adjustments',
-    'ads', 'vehicles', 'payment_methods', 'quick_actions', 'categories'
+    'ads', 'vehicles', 'payment_methods', 'quick_actions', 'categories', 'promo_codes'
   ];
 
   entities.forEach(entity => {
@@ -453,9 +462,9 @@ async function startServer() {
       );
       const idField = entity === 'users' ? 'uid' : 'id';
       
-      const columns = keys.join(', ');
+      const columns = keys.map(k => `"${k}"`).join(', ');
       const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
-      const updates = keys.map((k, i) => `${k} = $${i + 1}`).join(', ');
+      const updates = keys.map((k, i) => `"${k}" = $${i + 1}`).join(', ');
 
       const query = `
         INSERT INTO ${table} (${columns}) 

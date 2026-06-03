@@ -192,5 +192,19 @@ CREATE TABLE IF NOT EXISTS categories (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     image TEXT,
+    sub_categories TEXT,
     "order" INTEGER DEFAULT 0
+);
+
+-- Promo Codes table
+CREATE TABLE IF NOT EXISTS promo_codes (
+    id TEXT PRIMARY KEY,
+    code TEXT NOT NULL,
+    type TEXT NOT NULL,
+    value NUMERIC NOT NULL,
+    expiry_date TEXT NOT NULL,
+    min_order_amount NUMERIC DEFAULT 0,
+    description TEXT,
+    category TEXT,
+    sub_category TEXT
 );
